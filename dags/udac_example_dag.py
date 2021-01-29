@@ -12,18 +12,25 @@ from helpers import SqlQueries
 default_args = {
     'owner': 'udacity',
     'start_date': datetime(2018, 11, 1),
+    'end_date': datetime(2018, 11, 30),
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 3,
+
+    # DEBUG this seeting to 3
+    'retries': 0,
     'retry_delay': timedelta(minutes=5),
 }
 
 dag = DAG('udac_example_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
-          schedule_interval='@hourly',
-          catchup=False
+          # DEBUG
+          schedule_interval='*/5 * * * *',
+          # schedule_interval='@hourly',
+          catchup=False,
+          # DEBUG this is here just to make debugging easier
+          max_active_runs=1
           )
 
 start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
@@ -47,7 +54,9 @@ stage_songs_to_redshift = StageToRedshiftOperator(
     aws_credentials_id="aws_credentials",
     table="staging_songs",
     s3_bucket="udacity-dend",
-    s3_key="song_data",
+    # DEBUG to speed up loading process
+    s3_key="song_data/A/A/A",
+    # s3_key="song_data",
     context=True
 )
 
