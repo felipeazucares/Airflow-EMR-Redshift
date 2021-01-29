@@ -29,7 +29,7 @@ class StageToRedshiftOperator(BaseOperator):
         self.table = table
         self.redshift_conn_id = redshift_conn_id
         self.s3_bucket = s3_bucket
-        # we can use a template field here as per demo 1
+        # note that this will contain the key or a template parameter that we can rendere and expand to backfill daily
         self.s3_key = s3_key
         self.aws_credentials_id = aws_credentials_id
 
