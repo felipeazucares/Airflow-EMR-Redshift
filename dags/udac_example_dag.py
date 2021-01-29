@@ -29,8 +29,7 @@ stage_events_to_redshift = StageToRedshiftOperator(
     aws_credentials_id="aws_credentials",
     table="staging_events",
     s3_bucket="udacity-dend",
-    s3_key="log_data",
-    delimiter=",",
+    s3_key="log_data/{execution_date.year}/{execution_date.month}/{ds}-events.json",
     context=True
 )
 
@@ -42,7 +41,6 @@ stage_songs_to_redshift = StageToRedshiftOperator(
     table="staging_songs",
     s3_bucket="udacity-dend",
     s3_key="song_data",
-    delimiter=",",
     context=True
 )
 

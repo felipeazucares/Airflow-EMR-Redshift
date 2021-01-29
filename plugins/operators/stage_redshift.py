@@ -5,6 +5,7 @@ from airflow.utils.decorators import apply_defaults
 
 
 class StageToRedshiftOperator(BaseOperator):
+    """ define operator for loading from S3 into redshift """
     template_fields = ("s3_key",)
     copy_sql = """
         COPY {}
@@ -22,7 +23,6 @@ class StageToRedshiftOperator(BaseOperator):
                  s3_bucket="",
                  s3_key="",
                  delimiter=",",
-                 ignore_headers=1,
                  *args, **kwargs):
 
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
@@ -31,8 +31,6 @@ class StageToRedshiftOperator(BaseOperator):
         self.s3_bucket = s3_bucket
         # we can use a template field here as per demo 1
         self.s3_key = s3_key
-        self.delimiter = delimiter
-        self.ignore_headers = ignore_headers
         self.aws_credentials_id = aws_credentials_id
 
     def execute(self, context):
@@ -40,20 +38,18 @@ class StageToRedshiftOperator(BaseOperator):
         credentials = aws_hook.get_credentials()
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
 
-        self.log.info("Clearing data from destination Redshift table")
-        redshift.run("DELETE FROM {}".format(self.table))
+        self.log.info("Truncating staging table:{}".format(self.table))
+        redshift.run("TRUNCATE TABLE {}".format(self.table))
 
-        self.log.info("Copying data from S3 to Redshift")
+        self.log.info("Copying data from S3 into Redshift table")
         rendered_key = self.s3_key.format(**context)
         #s3_path = "s3://{}/{}".format(self.s3_bucket, rendered_key)
-
+        # rendered_key will contain the appropriate date so that we can backfill
         s3_path = 's3://' + self.s3_bucket + '/' + rendered_key
         formatted_sql = StageToRedshiftOperator.copy_sql.format(
             self.table,
             s3_path,
             credentials.access_key,
-            credentials.secret_key,
-            self.ignore_headers,
-            self.delimiter
+            credentials.secret_key
         )
         redshift.run(formatted_sql)
