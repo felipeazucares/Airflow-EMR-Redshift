@@ -12,25 +12,12 @@ from helpers import SqlQueries
 default_args = {
     'owner': 'udacity',
     'start_date': datetime(2018, 11, 1),
-    'end_date': datetime(2018, 11, 30),
-    'depends_on_past': False,
-    'email_on_failure': False,
-    'email_on_retry': False,
-
-    # DEBUG this seeting to 3
-    'retries': 1,
-    'retry_delay': timedelta(minutes=5),
 }
 
-dag = DAG('udac_example_dag',
+dag = DAG('airflow_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
-          # DEBUG
-          #schedule_interval='*/5 * * * *',
-          # schedule_interval='@hourly',
-          # catchup=False,
-          # DEBUG this is here just to make debugging easier
-          max_active_runs=1
+          schedule_interval='0 * * * *'
           )
 
 start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
@@ -42,9 +29,8 @@ stage_events_to_redshift = StageToRedshiftOperator(
     aws_credentials_id="aws_credentials",
     table="staging_events",
     s3_bucket="udacity-dend",
-    # s3_key="log_data",
-    s3_key="log_data/{execution_date.year}/{execution_date.month}/{ds}-events.json",
-    json_path='s3://udacity-dend/log_json_path.json',
+    s3_key="log_data",
+    # s3_key="log_data/{execution_date.year}/{execution_date.month}/{ds}-events.json",
     context=True
 )
 
@@ -55,10 +41,7 @@ stage_songs_to_redshift = StageToRedshiftOperator(
     aws_credentials_id="aws_credentials",
     table="staging_songs",
     s3_bucket="udacity-dend",
-    # DEBUG to speed up loading process
-    s3_key="song_data/A/A/A",
-    # s3_key="song_data",
-    json_path='auto',
+    s3_key="song_data",
     context=True
 )
 
@@ -69,8 +52,7 @@ load_songplays_table = LoadFactOperator(
     aws_credentials_id="aws_credentials",
     sql_query=SqlQueries.songplay_table_insert,
     append_mode=True,
-    table='songplays',
-    context=True
+    table='songplays'
 )
 
 load_user_dimension_table = LoadDimensionOperator(
