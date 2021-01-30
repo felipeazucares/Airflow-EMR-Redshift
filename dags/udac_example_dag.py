@@ -18,7 +18,7 @@ default_args = {
     'email_on_retry': False,
 
     # DEBUG this seeting to 3
-    'retries': 0,
+    'retries': 1,
     'retry_delay': timedelta(minutes=5),
 }
 
@@ -26,9 +26,9 @@ dag = DAG('udac_example_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
           # DEBUG
-          schedule_interval='*/5 * * * *',
+          #schedule_interval='*/5 * * * *',
           # schedule_interval='@hourly',
-          catchup=False,
+          # catchup=False,
           # DEBUG this is here just to make debugging easier
           max_active_runs=1
           )
@@ -67,7 +67,8 @@ load_songplays_table = LoadFactOperator(
     aws_credentials_id="aws_credentials",
     sql_query=SqlQueries.songplay_table_insert,
     append_mode=True,
-    table='songplays'
+    table='songplays',
+    context=True
 )
 
 load_user_dimension_table = LoadDimensionOperator(

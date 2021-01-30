@@ -11,7 +11,6 @@ class LoadFactOperator(BaseOperator):
                  redshift_conn_id="",
                  aws_credentials_id="",
                  sql_query="",
-                 db_name="",
                  table="",
                  append_mode="",
                  *args, **kwargs):
@@ -23,14 +22,16 @@ class LoadFactOperator(BaseOperator):
         self.append_mode = append_mode
 
     def execute(self, context):
-        self.log.info("Loading data into {}").format(
-            self.table)
+        self.log.info("Loading data into table")
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
         # check whether we shoudl append or truncate the table first.
         if self.append_mode != True:
-            sql_statement = "TRUNCATE TABLE {}".format(
+            self.sql_query = "TRUNCATE TABLE {}".format(
                 self.table)
-            redshift.run(sql_statement)
-        sql_statement = "INSERT INTO {} {}".format(
-            self.table, self.sql_statement)
-        redshift.run(sql_statement)
+            redshift.run(self.sql_query)
+        # self.sql_query = "INSERT INTO {} {}".format(
+        #    self.table, self.sql_query)
+
+        self.sql_query = "INSERT INTO {self.table} {self.sql_statement}"
+        self.log.info("SQL Query:"+self.sql_query)
+        redshift.run(self.sql_query)
