@@ -6,9 +6,6 @@ from airflow.operators import (StageToRedshiftOperator, LoadFactOperator,
                                LoadDimensionOperator, DataQualityOperator)
 from helpers import SqlQueries
 
-# AWS_KEY = os.environ.get('AWS_KEY')
-# AWS_SECRET = os.environ.get('AWS_SECRET')
-
 default_args = {
     'owner': 'udacity',
     'start_date': datetime(2018, 11, 1),
@@ -16,19 +13,15 @@ default_args = {
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,
-
-    # DEBUG this seeting to 3
-    'retries': 1,
+    'retries': 3,
     'retry_delay': timedelta(minutes=5),
 }
 
 dag = DAG('udac_example_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
-          # DEBUG
-          #schedule_interval='*/5 * * * *',
-          # schedule_interval='@hourly',
-          # catchup=False,
+          schedule_interval='@hourly',
+          catchup=False,
           # DEBUG this is here just to make debugging easier
           max_active_runs=1
           )
@@ -42,7 +35,7 @@ stage_events_to_redshift = StageToRedshiftOperator(
     aws_credentials_id="aws_credentials",
     table="staging_events",
     s3_bucket="udacity-dend",
-    # s3_key="log_data",
+    # pass these context variables into the operator so we can backfill by day
     s3_key="log_data/{execution_date.year}/{execution_date.month}/{ds}-events.json",
     json_path='s3://udacity-dend/log_json_path.json',
     context=True
@@ -68,8 +61,7 @@ load_songplays_table = LoadFactOperator(
     redshift_conn_id="redshift",
     sql_query=SqlQueries.songplay_table_insert,
     append_mode=True,
-    table='songplays',
-    context=True
+    table='songplays'
 )
 
 load_user_dimension_table = LoadDimensionOperator(
@@ -114,13 +106,22 @@ load_time_dimension_table = LoadDimensionOperator(
 
 run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
-    dag=dag
+    dag=dag,
+    redshift_conn_id="redshift",
+    sql_query=SqlQueries.check_for_nulls,
+    # table we will query
+    table='songplays',
+    # field we want to count nulls in
+    field='playid',
+    # what we should get as a result
+    expected_result=0
 )
 
 end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
 
 start_operator >> [stage_events_to_redshift,
                    stage_songs_to_redshift] >> load_songplays_table
+
 load_songplays_table >> [load_song_dimension_table, load_user_dimension_table,
                          load_artist_dimension_table, load_time_dimension_table] >> run_quality_checks
 run_quality_checks >> end_operator
