@@ -16,9 +16,7 @@ default_args = {
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,
-
-    # DEBUG this seeting to 3
-    'retries': 1,
+    'retries': 3,
     'retry_delay': timedelta(minutes=5),
 }
 
@@ -114,13 +112,19 @@ load_time_dimension_table = LoadDimensionOperator(
 
 run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
-    dag=dag
+    dag=dag,
+    redshift_conn_id="redshift",
+    sql_query=SqlQueries.check_for_nulls,
+    # what we should get as a result
+    test_result=0,
 )
 
 end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
 
 start_operator >> [stage_events_to_redshift,
                    stage_songs_to_redshift] >> load_songplays_table
-load_songplays_table >> [load_song_dimension_table, load_user_dimension_table,
-                         load_artist_dimension_table, load_time_dimension_table] >> run_quality_checks
-run_quality_checks >> end_operator
+# DEBUG TO SPEED IT UP
+# load_songplays_table >> [load_song_dimension_table, load_user_dimension_table,
+#                          load_artist_dimension_table, load_time_dimension_table] >> run_quality_checks
+# run_quality_checks >> end_operator
+load_songplays_table >> run_quality_checks >> end_operator
