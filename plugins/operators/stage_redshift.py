@@ -12,7 +12,7 @@ class StageToRedshiftOperator(BaseOperator):
         FROM '{}'
         ACCESS_KEY_ID '{}'
         SECRET_ACCESS_KEY '{}'
-        JSON 'auto'
+        JSON {}
      """
 
     @apply_defaults
@@ -22,7 +22,7 @@ class StageToRedshiftOperator(BaseOperator):
                  table="",
                  s3_bucket="",
                  s3_key="",
-                 delimiter=",",
+                 json_path="",
                  *args, **kwargs):
 
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
@@ -32,6 +32,7 @@ class StageToRedshiftOperator(BaseOperator):
         # note that this will contain the key or a template parameter that we can rendere and expand to backfill daily
         self.s3_key = s3_key
         self.aws_credentials_id = aws_credentials_id
+        self.json_path = json_path
 
     def execute(self, context):
         aws_hook = AwsHook(self.aws_credentials_id)
@@ -50,6 +51,7 @@ class StageToRedshiftOperator(BaseOperator):
             self.table,
             s3_path,
             credentials.access_key,
-            credentials.secret_key
+            credentials.secret_key,
+            self.json_path
         )
         redshift.run(formatted_sql)

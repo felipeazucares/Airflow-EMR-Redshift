@@ -44,6 +44,7 @@ stage_events_to_redshift = StageToRedshiftOperator(
     s3_bucket="udacity-dend",
     # s3_key="log_data",
     s3_key="log_data/{execution_date.year}/{execution_date.month}/{ds}-events.json",
+    json_path='s3://udacity-dend/log_json_path.json',
     context=True
 )
 
@@ -57,6 +58,7 @@ stage_songs_to_redshift = StageToRedshiftOperator(
     # DEBUG to speed up loading process
     s3_key="song_data/A/A/A",
     # s3_key="song_data",
+    json_path='auto',
     context=True
 )
 
