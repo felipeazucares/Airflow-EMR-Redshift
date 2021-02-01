@@ -109,7 +109,9 @@ load_time_dimension_table = LoadDimensionOperator(
     table='time',
     context=True
 )
-
+# ! LOOK AT THE stage_redshift to see how we can template the table name and field name
+# ! into the code here so that we could just cal the operator for multiple tests
+# ! also look at how we can inherit & modify the defaultargs as I think they differ for this task
 run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
     dag=dag,
