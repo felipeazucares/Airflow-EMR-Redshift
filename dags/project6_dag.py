@@ -17,9 +17,9 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-dag = DAG('udac_example_dag',
+dag = DAG('project6_dag',
           default_args=default_args,
-          description='Load and transform data in Redshift with Airflow',
+          description='Load and transform data in Redshift with Airflow - project 6',
           schedule_interval='@hourly',
           catchup=True,
           # DEBUG this is here just to make debugging easier
@@ -103,9 +103,7 @@ load_time_dimension_table = LoadDimensionOperator(
     table='time',
     context=True
 )
-# ! LOOK AT THE stage_redshift to see how we can template the table name and field name
-# ! into the code here so that we could just cal the operator for multiple tests
-# ! also look at how we can inherit & modify the defaultargs as I think they differ for this task
+
 run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
     dag=dag,

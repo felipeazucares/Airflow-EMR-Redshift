@@ -1,4 +1,5 @@
 class SqlQueries:
+    # Selects records that we will insert into songplays table
     songplay_table_insert = ("""
         SELECT
                 md5(events.sessionid || events.start_time) songplay_id,
@@ -18,18 +19,19 @@ class SqlQueries:
                 AND events.artist = songs.artist_name
                 AND events.length = songs.duration
     """)
-
+    # Selects user records that we will insert into dimension table
     user_table_insert = ("""
         SELECT distinct userid, firstname, lastname, gender, level
         FROM staging_events
         WHERE page='NextSong'
     """)
-
+    # Inserts songs into song table
     song_table_insert = ("""
         SELECT distinct song_id, title, artist_id, year, duration
         FROM staging_songs
     """)
 
+    #
     artist_table_insert = ("""
         SELECT distinct artist_id, artist_name, artist_location, artist_latitude, artist_longitude
         FROM staging_songs
@@ -43,5 +45,5 @@ class SqlQueries:
 
     check_for_nulls = ("""
         SELECT COUNT(*) 
-        FROM songplays WHERE playid IS NULL
+        FROM {} WHERE {} IS NULL
     """)
