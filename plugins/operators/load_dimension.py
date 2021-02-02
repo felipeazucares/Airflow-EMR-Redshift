@@ -5,7 +5,7 @@ from airflow.utils.decorators import apply_defaults
 
 class LoadDimensionOperator(BaseOperator):
 
-    ui_color = '#80BD9E'
+    ui_color = "#80BD9E"
 
     @apply_defaults
     def __init__(self,
@@ -22,11 +22,11 @@ class LoadDimensionOperator(BaseOperator):
         self.append_mode = append_mode
 
     def execute(self, context):
-        self.log.info('LoadDimensionOperator on {}'.format(self.table))
+        self.log.info("LoadDimensionOperator on {}".format(self.table))
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
         # string conversion
-        table_str = ''.join(self.table)
-        query_str = ''.join(self.sql_query)
+        table_str = "".join(self.table)
+        query_str = "".join(self.sql_query)
         # check whether we should append or truncate the table first.
         if self.append_mode != True:
             self.sql_query = "TRUNCATE TABLE {}".format(
