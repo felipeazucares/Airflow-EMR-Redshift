@@ -21,10 +21,7 @@ dag = DAG("project6_dag",
           default_args=default_args,
           description="Load and transform data in Redshift with Airflow - project 6",
           schedule_interval="@hourly",
-          # ! DEBUG set to false
-          catchup=True,
-          # ! DEBUG remove
-          max_active_runs=1
+          catchup=False,
           )
 
 start_operator = DummyOperator(task_id="Begin_execution",  dag=dag)
@@ -49,9 +46,7 @@ stage_songs_to_redshift = StageToRedshiftOperator(
     aws_credentials_id="aws_credentials",
     table="staging_songs",
     s3_bucket="udacity-dend",
-    # ! DEBUG remove
-    s3_key="song_data/A/A/A",
-    # s3_key="song_data",
+    s3_key="song_data",
     json_path="auto",
     context=True
 )
