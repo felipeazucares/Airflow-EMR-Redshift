@@ -21,9 +21,7 @@ dag = DAG('project6_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow - project 6',
           schedule_interval='@hourly',
-          catchup=False,
-          # DEBUG this is here just to make debugging easier
-          max_active_runs=1
+          catchup=True,
           )
 
 start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)

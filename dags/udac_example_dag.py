@@ -21,7 +21,7 @@ dag = DAG('udac_example_dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
           schedule_interval='@hourly',
-          catchup=False,
+          catchup=True,
           # DEBUG this is here just to make debugging easier
           max_active_runs=1
           )
