@@ -48,8 +48,6 @@ stage_songs_to_redshift = StageToRedshiftOperator(
     aws_credentials_id="aws_credentials",
     table="staging_songs",
     s3_bucket="udacity-dend",
-    # DEBUG to speed up loading process
-    # s3_key="song_data/A/A/A",
     s3_key="song_data",
     json_path='auto',
     context=True
@@ -114,7 +112,7 @@ run_quality_checks = DataQualityOperator(
     # field we want to count nulls in
     field='playid',
     # what we should get as a result
-    expected_result=1
+    expected_result=0
 )
 
 end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
