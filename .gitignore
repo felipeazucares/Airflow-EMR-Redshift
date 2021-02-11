@@ -7,6 +7,9 @@ initdb.py
 secrets.py
 /logs*
 
+#aws
+AWSCLIV2.pkg
+
 # Airflow sqlite databases
 airflow.db
 unittests.db
