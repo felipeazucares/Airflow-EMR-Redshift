@@ -6,7 +6,6 @@
 from pyspark.sql import SparkSession
 import os
 import configparser
-import pandas as pd
 import datetime
 from pyspark.sql import functions as F
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format

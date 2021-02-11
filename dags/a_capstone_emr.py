@@ -32,6 +32,8 @@ s3_analytics_bucket = "analytics/"
 s3_script = "process_i94.py"
 
 # define tbhe EMR instance details
+
+# Boto3 job flow parameters see https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/emr.html#EMR.Client.run_job_flow
 JOB_FLOW_OVERRIDES = {
     "Name": "i94_capstone",
     "ReleaseLabel": "emr-5.29.0",
@@ -59,23 +61,25 @@ JOB_FLOW_OVERRIDES = {
             },
             {
                 "Name": "Core - 2",
-                "Market": "SPOT",  # Spot instances are a "use as available" instances
+                "Market": "SPOT",
                 "InstanceRole": "CORE",
                 "InstanceType": "m5.xlarge",
                 "InstanceCount": 2,
             },
         ],
-        "Ec2KeyName": ".ssh/emr_key.pem",
+        # if we add a key in then we can ssh to this instance post launch - this is the name of the EC2 key in the EC2 dashboard>>key pair
+        "Ec2KeyName": "EMR_KEY",
         "KeepJobFlowAliveWhenNoSteps": True,
-        "TerminationProtected": False,  # this lets us programmatically terminate the cluster
-        "EmrManagedMasterSecurityGroup": "ElasticMapReduce-master",
-        "EmrManagedSlaveSecurityGroup": "ElasticMapreduce-slave",
+        "TerminationProtected": False,
+        # as above speciffy specific sec groups to enable access to debug jobs
+        "EmrManagedMasterSecurityGroup": "sg-019400a9e885f3e23",
+        "EmrManagedSlaveSecurityGroup": "sg-019400a9e885f3e23",
     },
     "JobFlowRole": "EMR_EC2_DefaultRole",
     "ServiceRole": "EMR_DefaultRole",
 }
 
-SPARK_STEPS = [  # Note the params values are supplied to the operator
+SPARK_STEPS = [
     {
         "Name": "Move raw data from S3 to HDFS",
         "ActionOnFailure": "CANCEL_AND_WAIT",
@@ -85,6 +89,16 @@ SPARK_STEPS = [  # Note the params values are supplied to the operator
                 "s3-dist-cp",
                 "--src=s3a://{{ params.BUCKET_NAME }}/{{ params.s3_data }}",
                 "--dest=hdfs:///user/hadoop/i94",
+            ],
+        },
+    },
+    {
+        "Name": "install pre-requisites",
+        "ActionOnFailure": "CANCEL_AND_WAIT",
+        "HadoopJarStep": {
+            "Jar": "command-runner.jar",
+            "Args": [
+                "sudo pip install configparser",
             ],
         },
     },
