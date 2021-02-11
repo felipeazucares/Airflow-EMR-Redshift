@@ -27,7 +27,7 @@ def stub():
 # configuration information
 BUCKET_NAME = "capstone-suggars"
 #local_data = "./dags/data/movie_review.csv"
-s3_data_bucket = "data/"
+s3_data_bucket = "data2/"
 s3_analytics_bucket = "analytics/"
 s3_script = "process_i94.py"
 
@@ -65,8 +65,11 @@ JOB_FLOW_OVERRIDES = {
                 "InstanceCount": 2,
             },
         ],
+        "Ec2KeyName": ".ssh/emr_key.pem",
         "KeepJobFlowAliveWhenNoSteps": True,
         "TerminationProtected": False,  # this lets us programmatically terminate the cluster
+        "EmrManagedMasterSecurityGroup": "ElasticMapReduce-master",
+        "EmrManagedSlaveSecurityGroup": "ElasticMapreduce-slave",
     },
     "JobFlowRole": "EMR_EC2_DefaultRole",
     "ServiceRole": "EMR_DefaultRole",
@@ -80,13 +83,13 @@ SPARK_STEPS = [  # Note the params values are supplied to the operator
             "Jar": "command-runner.jar",
             "Args": [
                 "s3-dist-cp",
-                "--src=s3://{{ params.BUCKET_NAME }}/data",
-                "--dest=/i94",
+                "--src=s3a://{{ params.BUCKET_NAME }}/{{ params.s3_data }}",
+                "--dest=hdfs:///user/hadoop/i94",
             ],
         },
     },
     {
-        "Name": "Read and create first step",
+        "Name": "Build state dimension table",
         "ActionOnFailure": "CANCEL_AND_WAIT",
         "HadoopJarStep": {
             "Jar": "command-runner.jar",
@@ -94,7 +97,7 @@ SPARK_STEPS = [  # Note the params values are supplied to the operator
                 "spark-submit",
                 "--deploy-mode",
                 "client",
-                "s3://{{ params.BUCKET_NAME }}/{{ params.s3_script }}",
+                "s3a://{{ params.BUCKET_NAME }}/pyspark_steps/{{ params.s3_script }}",
             ],
         },
     },
@@ -105,8 +108,8 @@ SPARK_STEPS = [  # Note the params values are supplied to the operator
             "Jar": "command-runner.jar",
             "Args": [
                 "s3-dist-cp",
-                "--src=/output",
-                "--dest=s3://{{ params.BUCKET_NAME }}/{{ params.s3_output }}",
+                "--src=hdfs:///user/hadoop/analytics",
+                "--dest=s3a://{{ params.BUCKET_NAME }}/{{ params.s3_output }}",
             ],
         },
     },
@@ -149,7 +152,7 @@ step_adder = EmrAddStepsOperator(
     params={  # these params are used to fill the paramterized values in SPARK_STEPS json
         "BUCKET_NAME": BUCKET_NAME,
         "s3_data": s3_data_bucket,
-        "s3_script": s3_script,
+        "s3_script": "process_state_dimension_data.py",
         "s3_output": s3_analytics_bucket,
     },
     dag=dag,
@@ -168,20 +171,20 @@ step_checker = EmrStepSensor(
     dag=dag,
 )
 
-move_raw_data = DummyOperator(
-    task_id="move_raw_data",
-    dag=dag,
-)
+# move_raw_data = DummyOperator(
+#     task_id="move_raw_data",
+#     dag=dag,
+# )
 
-process_data = DummyOperator(
-    task_id="process_data",
-    dag=dag,
-)
+# process_data = DummyOperator(
+#     task_id="process_data",
+#     dag=dag,
+# )
 
-run_quality_checks = DummyOperator(
-    task_id="Run_data_quality_checks",
-    dag=dag,
-)
+# run_quality_checks = DummyOperator(
+#     task_id="Run_data_quality_checks",
+#     dag=dag,
+# )
 
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 

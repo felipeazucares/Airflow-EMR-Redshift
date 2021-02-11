@@ -11,6 +11,24 @@ from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as
 from functools import reduce
 from pyspark.sql import DataFrame
 
+
+# helper functions
+def unionAll(*dfs):
+    return reduce(DataFrame.unionAll, dfs)
+
+
+spark = (SparkSession.builder.
+         config("spark.jars.packages", "saurfang:spark-sas7bdat:2.0.0-s_2.11,org.apache.hadoop:hadoop-aws:2.7.2").
+         enableHiveSupport().getOrCreate())
+hadoop_conf = spark._jsc.hadoopConfiguration()
+hadoop_conf.set("fs.s3a.access.key", AWS_ACCESS_KEY)
+hadoop_conf.set("fs.s3a.secret.key", AWS_SECRET_KEY)
+hadoop_conf.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+hadoop_conf.set("com.amazonaws.services.s3.enableV4", "true")
+hadoop_conf.set("fs.s3a.aws.credentials.provider",
+                "org.apache.hadoop.fs.s3a.BasicAWSCredentialsProvider")
+#hadoop_conf.set("fs.s3a.endpoint", "us-west-2.amazonaws.com")
+
 temperature_state_schema = R([
     Fld("dt", Dt()),
     Fld("AverageTemperature", Ft()),
@@ -18,12 +36,6 @@ temperature_state_schema = R([
     Fld("State", Str()),
     Fld("Country", Str())
 ])
-
-
-# helper functions
-def unionAll(*dfs):
-    return reduce(DataFrame.unionAll, dfs)
-
 
 # Firstly get the temperature data by city
 df_temperature_state = spark.read.options(Header=True).csv(
@@ -63,4 +75,4 @@ df_temperature = df_temperature \
 df_fact_temperature_by_state_name = unionAll(df_temperature, df_temp_to_average) \
     .sort("state_name", "month")
 
-df_fact_temperature_by_state_name.show(36)
+# df_fact_temperature_by_state_name.show(36)
