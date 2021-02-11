@@ -12,7 +12,7 @@ from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, dat
 from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, \
     IntegerType as Int, LongType as Lng, TimestampType as Tms, DateType as Dt, FloatType as Ft
 #from functools import reduce
-from pyspark.sql import DataFrame
+#from pyspark.sql import DataFrame
 
 INPUT_FILE = "us-cities-demographics.csv"
 OUTPUT_FILE = "dim_state"
