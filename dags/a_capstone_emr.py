@@ -26,7 +26,6 @@ def stub():
 
 # configuration information
 BUCKET_NAME = "capstone-suggars"
-#local_data = "./dags/data/movie_review.csv"
 s3_data_bucket = "data2/"
 s3_analytics_bucket = "analytics/"
 s3_script = "process_i94.py"
