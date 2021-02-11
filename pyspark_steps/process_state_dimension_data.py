@@ -4,14 +4,14 @@
 # 2021
 
 from pyspark.sql import SparkSession
-import os
+#import os
 #import configparser
-import datetime
+#import datetime
 from pyspark.sql import functions as F
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
 from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, \
     IntegerType as Int, LongType as Lng, TimestampType as Tms, DateType as Dt, FloatType as Ft
-from functools import reduce
+#from functools import reduce
 from pyspark.sql import DataFrame
 
 INPUT_FILE = "us-cities-demographics.csv"
@@ -20,7 +20,7 @@ HDFS_INPUT = "hdfs:///user/hadoop/i94"
 HDFS_OUTPUT = "hdfs:///user/hadoop/analytics"
 
 
-def create_spark_session(AWS_ACCESS_KEY, AWS_SECRET_KEY):
+def create_spark_session():
     """ create spark session and return """
 
     spark = (SparkSession.builder.
@@ -96,15 +96,15 @@ def main():
 
 
 # read key details from dl.cfg file
-config = configparser.ConfigParser()
-config.read("dl.cfg")
-# set os variables from config file
-AWS_ACCESS_KEY_ID = config.get("AWS", "AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = config.get(
-    "AWS", "AWS_SECRET_ACCESS_KEY")
+# config = configparser.ConfigParser()
+# config.read("dl.cfg")
+# # set os variables from config file
+# AWS_ACCESS_KEY_ID = config.get("AWS", "AWS_ACCESS_KEY_ID")
+# AWS_SECRET_ACCESS_KEY = config.get(
+#     "AWS", "AWS_SECRET_ACCESS_KEY")
 
 # create spark session
-spark = create_spark_session(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+spark = create_spark_session()
 # read the city demographic datafile csv
 df_demographic_data = read_city_demographic_data(
     spark, HDFS_INPUT + '/' + INPUT_FILE)
