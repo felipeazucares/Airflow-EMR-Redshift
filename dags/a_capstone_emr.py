@@ -19,11 +19,6 @@ from functools import reduce
 from pyspark.sql import DataFrame
 
 
-def stub():
-    # this doesn't do anything
-    logging.info("Dummy function called")
-
-
 # configuration information
 BUCKET_NAME = "capstone-suggars"
 s3_data_bucket = "data2/"
@@ -70,17 +65,17 @@ JOB_FLOW_OVERRIDES = {
         "Ec2KeyName": "EMR_KEY",
         "KeepJobFlowAliveWhenNoSteps": True,
         "TerminationProtected": False,
-        # as above speciffy specific sec groups to enable access to debug jobs
+        # as above specify specific sec groups to enable access to debug jobs
         "EmrManagedMasterSecurityGroup": "sg-019400a9e885f3e23",
         "EmrManagedSlaveSecurityGroup": "sg-019400a9e885f3e23",
     },
     # This script gets executed when the cluster starts to ensure we have correct libraries installed
-    "BootstrapActions": [{
-        'Name': 'Install configparser',
-        'ScriptBootstrapAction': {
-            'Path': 's3://capstone-suggars/bootstrap_emr/installer.sh'
-        }
-    }],
+    # "BootstrapActions": [{
+    #     "Name": "Install configparser",
+    #     "ScriptBootstrapAction": {
+    #         "Path": "file:///Users/donfelipe/airflow/bootstrap_emr/installer.sh"
+    #     }
+    # }],
     "JobFlowRole": "EMR_EC2_DefaultRole",
     "ServiceRole": "EMR_DefaultRole",
 }
@@ -95,16 +90,6 @@ SPARK_STEPS = [
                 "s3-dist-cp",
                 "--src=s3a://{{ params.BUCKET_NAME }}/{{ params.s3_data }}",
                 "--dest=hdfs:///user/hadoop/i94",
-            ],
-        },
-    },
-    {
-        "Name": "install pre-requisites",
-        "ActionOnFailure": "CANCEL_AND_WAIT",
-        "HadoopJarStep": {
-            "Jar": "command-runner.jar",
-            "Args": [
-                "sudo pip install configparser",
             ],
         },
     },
@@ -190,21 +175,6 @@ step_checker = EmrStepSensor(
     aws_conn_id="aws_default",
     dag=dag,
 )
-
-# move_raw_data = DummyOperator(
-#     task_id="move_raw_data",
-#     dag=dag,
-# )
-
-# process_data = DummyOperator(
-#     task_id="process_data",
-#     dag=dag,
-# )
-
-# run_quality_checks = DummyOperator(
-#     task_id="Run_data_quality_checks",
-#     dag=dag,
-# )
 
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 

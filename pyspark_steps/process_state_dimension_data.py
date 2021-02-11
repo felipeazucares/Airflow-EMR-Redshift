@@ -5,7 +5,7 @@
 
 from pyspark.sql import SparkSession
 import os
-import configparser
+#import configparser
 import datetime
 from pyspark.sql import functions as F
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
@@ -26,13 +26,13 @@ def create_spark_session(AWS_ACCESS_KEY, AWS_SECRET_KEY):
     spark = (SparkSession.builder.
              config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.2").
              enableHiveSupport().getOrCreate())
-    hadoop_conf = spark._jsc.hadoopConfiguration()
-    hadoop_conf.set("fs.s3a.access.key", AWS_ACCESS_KEY)
-    hadoop_conf.set("fs.s3a.secret.key", AWS_SECRET_KEY)
-    hadoop_conf.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-    hadoop_conf.set("com.amazonaws.services.s3.enableV4", "true")
-    hadoop_conf.set("fs.s3a.aws.credentials.provider",
-                    "org.apache.hadoop.fs.s3a.BasicAWSCredentialsProvider")
+    # hadoop_conf = spark._jsc.hadoopConfiguration()
+    # hadoop_conf.set("fs.s3a.access.key", AWS_ACCESS_KEY)
+    # hadoop_conf.set("fs.s3a.secret.key", AWS_SECRET_KEY)
+    # hadoop_conf.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+    # hadoop_conf.set("com.amazonaws.services.s3.enableV4", "true")
+    # hadoop_conf.set("fs.s3a.aws.credentials.provider",
+    #                 "org.apache.hadoop.fs.s3a.BasicAWSCredentialsProvider")
     #hadoop_conf.set("fs.s3a.endpoint", "us-west-2.amazonaws.com")
     return spark
 
