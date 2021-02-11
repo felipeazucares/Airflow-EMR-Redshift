@@ -10,7 +10,13 @@ from airflow.contrib.operators.emr_create_job_flow_operator import (
 )
 from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
-# helper functions
+
+from pyspark.sql import functions as F
+from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
+from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, \
+    IntegerType as Int, LongType as Lng, TimestampType as Tms, DateType as Dt, FloatType as Ft
+from functools import reduce
+from pyspark.sql import DataFrame
 
 
 def stub():
