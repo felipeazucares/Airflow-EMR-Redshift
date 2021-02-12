@@ -13,6 +13,7 @@ INPUT_FILE = "GlobalLandTemperaturesByState.csv"
 OUTPUT_FILE = "fact_temperature_state"
 HDFS_INPUT = "hdfs:///user/hadoop/i94"
 HDFS_OUTPUT = "hdfs:///user/hadoop/analytics"
+STATE_FILE = "dim_state"
 
 # helper functions
 
@@ -22,7 +23,7 @@ def unionAll(*dfs):
 
 
 def create_spark_session():
-    """ create spark session and return """
+    """ Create spark session and return """
 
     spark = (SparkSession.builder.
              config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.2").
@@ -68,17 +69,17 @@ def generate_missing_temperature_by_state(df_temperature_by_state):
     df_temp_to_average = df_temperature_by_state.filter((df_temperature_by_state["Country"] == "United States") & ((df_temperature_by_state["Year"] == 2010) | (df_temperature_by_state["Year"] == 2011) | (
         df_temperature_by_state["Year"] == 2012)) & ((df_temperature_by_state["Month"] == 10) | (df_temperature_by_state["Month"] == 11) | (df_temperature_by_state["Month"] == 12)))
 
-    # average out the temperatures over the last three years
+    # Average out the temperatures over the last three years
     df_temp_to_average = df_temp_to_average.groupBy(
         "State", "Month").avg("AverageTemperature")
 
-    # add in a 2013 year column, reorder the columns and rename the average avg(AverageTemperature)
+    # Add in a 2013 year column, reorder the columns and rename the average avg(AverageTemperature)
     df_temp_to_average = df_temp_to_average \
         .withColumn('Year', F.lit(2013)) \
         .select("State", "avg(AverageTemperature)", "Month", "Year") \
         .withColumnRenamed("avg(AverageTemperature)", "AverageTemperature")
 
-    # filter out the items for 2013 and just keep the columns we want
+    # Filter out the items for 2013 and just keep the columns we want
     df_temperature = df_temperature_by_state \
         .select(F.col("State").alias("state_name"), F.col("AverageTemperature").alias("average_temperature"), F.col("Month").alias("month"), F.col("Year").alias("year")) \
         .filter((df_temperature_by_state["year"] == 2013) & (df_temperature_by_state["Country"] == "United States"))
@@ -89,8 +90,22 @@ def generate_missing_temperature_by_state(df_temperature_by_state):
     return df_fact_temperature_by_state_name
 
 
+def get_state_key_for_temperature_data(df_fact_temperature_by_state_name, df_dimension_state_table):
+    """ Join the temperature data to the state dimension table to get the state_key which is not included in the temperature data """
+    df_fact_temperature_by_state_key = df_fact_temperature_by_state_name \
+        .join(df_dimension_state_table, df_fact_temperature_by_state_name.state_name == df_dimension_state_table.state_name, "inner") \
+        .select("state_key", "average_temperature", "month")
+    return df_fact_temperature_by_state_key
+
+
+def read_dimension_state_table(filename):
+    """ Read the dimension state table """
+    df_dimension_state_table = spark.read.parquet(filename)
+    return df_dimension_state_table
+
+
 def write_parquet(dataset, output_file):
-    """ output provided dataset to parquet file for use later """
+    """ Output provided dataset to parquet file for use later """
     dataset.write.mode("overwrite").parquet(output_file)
 
 
@@ -100,13 +115,23 @@ def main():
 
 # create spark session
 spark = create_spark_session()
-# read the city demographic datafile csv
+# Read the city demographic datafile csv
 df_temperature_by_state = read_temperature_data(
     spark, HDFS_INPUT + '/' + INPUT_FILE)
+# Select the columns we want and generate month and year columns
 df_prepped_temperature_by_state = prepare_temperature_by_state(
     df_temperature_by_state)
+# Generate missing data by averaging months in previous years
 df_all_temperature_by_state = generate_missing_temperature_by_state(
     df_prepped_temperature_by_state)
-df_all_temperature_by_state.show()
-write_parquet(df_all_temperature_by_state,
+# Now read in the Dimension_state_table as we need a state_key for the temperature information and we only have a name
+df_dimension_state_table = read_dimension_state_table(
+    HDFS_OUTPUT + '/' + STATE_FILE)
+# Join the temperature data to the state table so we can extract the state_key
+df_all_temperature_by_state_key = get_state_key_for_temperature_data(
+    df_all_temperature_by_state, df_dimension_state_table)
+
+df_all_temperature_by_state_key.show()
+# Store the result in a parquet file as we will need it later to join with other fact table information
+write_parquet(df_all_temperature_by_state_key,
               HDFS_OUTPUT + '/' + OUTPUT_FILE)
