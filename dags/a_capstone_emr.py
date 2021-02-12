@@ -114,7 +114,20 @@ SPARK_STEPS = [
         },
     },
     {
-        "Name": "Move clean data from HDFS to S3",
+        "Name": "Process i94 fact data",
+        "ActionOnFailure": "CANCEL_AND_WAIT",
+        "HadoopJarStep": {
+            "Jar": "command-runner.jar",
+            "Args": [
+                "spark-submit",
+                "--deploy-mode",
+                "client",
+                "s3a://{{ params.BUCKET_NAME }}/{{ params.s3_script_bucket }}/process_i94_fact_data.py",
+            ],
+        },
+    },
+    {
+        "Name": "Move processed data from HDFS to S3",
         "ActionOnFailure": "CANCEL_AND_WAIT",
         "HadoopJarStep": {
             "Jar": "command-runner.jar",
@@ -165,7 +178,6 @@ step_adder = EmrAddStepsOperator(
         "BUCKET_NAME": BUCKET_NAME,
         "s3_data": s3_data_bucket,
         "s3_script_bucket": s3_script_bucket,
-        "s3_script": "process_state_dimension_data.py",
         "s3_output": s3_analytics_bucket,
     },
     dag=dag,
