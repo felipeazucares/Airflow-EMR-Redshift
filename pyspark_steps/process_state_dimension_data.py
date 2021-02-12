@@ -1,18 +1,14 @@
 
 # Takes the us-cities-demographic.csv data file, summarises it by state and stores it as a parquet file
 # Philip Suggars
-# 2021
+# February 2021
 
 from pyspark.sql import SparkSession
-#import os
-#import configparser
-#import datetime
 from pyspark.sql import functions as F
 from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
 from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, \
     IntegerType as Int, LongType as Lng, TimestampType as Tms, DateType as Dt, FloatType as Ft
-#from functools import reduce
-#from pyspark.sql import DataFrame
+
 
 INPUT_FILE = "us-cities-demographics.csv"
 OUTPUT_FILE = "dim_state"
@@ -26,14 +22,7 @@ def create_spark_session():
     spark = (SparkSession.builder.
              config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.2").
              enableHiveSupport().getOrCreate())
-    # hadoop_conf = spark._jsc.hadoopConfiguration()
-    # hadoop_conf.set("fs.s3a.access.key", AWS_ACCESS_KEY)
-    # hadoop_conf.set("fs.s3a.secret.key", AWS_SECRET_KEY)
-    # hadoop_conf.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-    # hadoop_conf.set("com.amazonaws.services.s3.enableV4", "true")
-    # hadoop_conf.set("fs.s3a.aws.credentials.provider",
-    #                 "org.apache.hadoop.fs.s3a.BasicAWSCredentialsProvider")
-    #hadoop_conf.set("fs.s3a.endpoint", "us-west-2.amazonaws.com")
+
     return spark
 
 
@@ -85,7 +74,7 @@ def aggregate_city_demographc_data(df_demographic):
     return df_dimension_state_table
 
 
-def write_parquet(dataset, partition, output_file):
+def write_parquet(dataset, output_file):
     """ output provided dataset to parquet file for use later """
     # write the non variant dimension data out to a parquet file - state dimension table
     dataset.write.mode("overwrite").parquet(output_file)
@@ -95,19 +84,11 @@ def main():
     """ Main Routine """
 
 
-# read key details from dl.cfg file
-# config = configparser.ConfigParser()
-# config.read("dl.cfg")
-# # set os variables from config file
-# AWS_ACCESS_KEY_ID = config.get("AWS", "AWS_ACCESS_KEY_ID")
-# AWS_SECRET_ACCESS_KEY = config.get(
-#     "AWS", "AWS_SECRET_ACCESS_KEY")
-
 # create spark session
 spark = create_spark_session()
 # read the city demographic datafile csv
 df_demographic_data = read_city_demographic_data(
     spark, HDFS_INPUT + '/' + INPUT_FILE)
 df_dimension_state_table = aggregate_city_demographc_data(df_demographic_data)
-write_parquet(df_dimension_state_table, "state_code",
+write_parquet(df_dimension_state_table,
               HDFS_OUTPUT + '/' + OUTPUT_FILE)

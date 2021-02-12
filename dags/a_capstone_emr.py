@@ -24,6 +24,7 @@ BUCKET_NAME = "capstone-suggars"
 s3_data_bucket = "data2/"
 s3_analytics_bucket = "analytics/"
 s3_script = "process_i94.py"
+s3_script_bucket = "pyspark_steps"
 
 # define tbhe EMR instance details
 
@@ -102,7 +103,20 @@ SPARK_STEPS = [
                 "spark-submit",
                 "--deploy-mode",
                 "client",
-                "s3a://{{ params.BUCKET_NAME }}/pyspark_steps/{{ params.s3_script }}",
+                "s3a://{{params.BUCKET_NAME}}/{{params.s3_script_bucket}}/process_state_dimension_data.py",
+            ],
+        },
+    },
+    {
+        "Name": "Process temperature by state",
+        "ActionOnFailure": "CANCEL_AND_WAIT",
+        "HadoopJarStep": {
+            "Jar": "command-runner.jar",
+            "Args": [
+                "spark-submit",
+                "--deploy-mode",
+                "client",
+                "s3a://{{ params.BUCKET_NAME }}/{{ params.s3_script_bucket }}/process_temperature_fact_data.py",
             ],
         },
     },
@@ -157,6 +171,7 @@ step_adder = EmrAddStepsOperator(
     params={  # these params are used to fill the paramterized values in SPARK_STEPS json
         "BUCKET_NAME": BUCKET_NAME,
         "s3_data": s3_data_bucket,
+        "s3_script_bucket": s3_script_bucket,
         "s3_script": "process_state_dimension_data.py",
         "s3_output": s3_analytics_bucket,
     },
