@@ -56,6 +56,7 @@ def prepare_temperature_by_state(df_temperature_by_state):
         'Year', year(df_temperature_by_state.dt))
     df_temperature_by_state = df_temperature_by_state.withColumn(
         'Month', month(df_temperature_by_state.dt))
+    return df_temperature_by_state
 
 
 def generate_missing_temperature_by_state(df_temperature_by_state):
