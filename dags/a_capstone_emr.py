@@ -70,13 +70,6 @@ JOB_FLOW_OVERRIDES = {
         "EmrManagedMasterSecurityGroup": "sg-019400a9e885f3e23",
         "EmrManagedSlaveSecurityGroup": "sg-019400a9e885f3e23",
     },
-    # This script gets executed when the cluster starts to ensure we have correct libraries installed
-    # "BootstrapActions": [{
-    #     "Name": "Install configparser",
-    #     "ScriptBootstrapAction": {
-    #         "Path": "file:///Users/donfelipe/airflow/bootstrap_emr/installer.sh"
-    #     }
-    # }],
     "JobFlowRole": "EMR_EC2_DefaultRole",
     "ServiceRole": "EMR_DefaultRole",
 }
