@@ -12,11 +12,6 @@ from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
 
 from pyspark.sql import functions as F
-from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
-from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, \
-    IntegerType as Int, LongType as Lng, TimestampType as Tms, DateType as Dt, FloatType as Ft
-from functools import reduce
-from pyspark.sql import DataFrame
 
 
 # configuration information
@@ -196,6 +191,10 @@ step_checker = EmrStepSensor(
     dag=dag,
 )
 
+# TODO: need a dataquality operator in here. We can have it run after the step_checker while the cluster is still up
+# TODO: need to a process that breaks down the cluster as well
+
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
+
 
 start_operator >> create_emr_instance >> step_adder >> step_checker >> end_operator
