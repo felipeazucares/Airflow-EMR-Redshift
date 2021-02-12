@@ -27,7 +27,7 @@ def create_spark_session():
     """ Create spark session and return """
 
     spark = (SparkSession.builder.
-             config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.2").
+             config("spark.jars.packages", "saurfang:spark-sas7bdat:2.0.0-s_2.11,org.apache.hadoop:hadoop-aws:2.7.2").
              enableHiveSupport().getOrCreate())
     return spark
 
@@ -76,7 +76,7 @@ def read_i94_data(spark, filename):
     return df_i94
 
 
-def read_parquet_file(filename):
+def read_parquet_file(spark, filename):
     """ Read the named parquet file and return it as a dataframe """
     df_input = spark.read.parquet(filename)
     return df_input
