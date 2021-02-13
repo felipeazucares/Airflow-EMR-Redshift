@@ -30,15 +30,14 @@ def create_spark_session():
 #! TRY the mentors on udacity
 #! TRY just connecting with the CLI rather than steps
     spark = (SparkSession.builder.
-             config("spark.jars.packages", "saurfang:spark-sas7bdat:2.0.0-s_2.11,org.apache.hadoop:hadoop-aws:2.7.2").
              enableHiveSupport().getOrCreate())
-    hadoop_conf = spark._jsc.hadoopConfiguration()
+    #hadoop_conf = spark._jsc.hadoopConfiguration()
     #hadoop_conf.set("fs.s3a.access.key", AWS_ACCESS_KEY)
     #hadoop_conf.set("fs.s3a.secret.key", AWS_SECRET_KEY)
-    hadoop_conf.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-    hadoop_conf.set("com.amazonaws.services.s3.enableV4", "true")
-    hadoop_conf.set("fs.s3a.aws.credentials.provider",
-                    "org.apache.hadoop.fs.s3a.BasicAWSCredentialsProvider")
+    #hadoop_conf.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+    #hadoop_conf.set("com.amazonaws.services.s3.enableV4", "true")
+    # hadoop_conf.set("fs.s3a.aws.credentials.provider",
+    #               "org.apache.hadoop.fs.s3a.BasicAWSCredentialsProvider")
     #hadoop_conf.set("fs.s3a.endpoint", "us-west-2.amazonaws.com")
     return spark
 
