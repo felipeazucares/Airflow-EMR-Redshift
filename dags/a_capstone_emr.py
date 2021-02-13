@@ -115,6 +115,7 @@ SPARK_STEPS = [
             "Jar": "command-runner.jar",
             "Args": [
                 "spark-submit",
+                "--packages saurfang:spark-sas7bdat:2.0.0-s_2.10 ",
                 "--deploy-mode",
                 "client",
                 "s3a://{{ params.BUCKET_NAME }}/{{ params.s3_script_bucket }}/process_i94_fact_data.py",
