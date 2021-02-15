@@ -117,7 +117,24 @@ SPARK_STEPS = [
                 "spark-submit",
                 "--deploy-mode",
                 "client",
-                "s3a://{{ params.BUCKET_NAME }}/{{ params.s3_script_bucket }}/process_i94_fact_data.py --packages saurfang:spark-sas7bdat:3.0.0-s_2.12",
+                "--packages",
+                "saurfang:spark-sas7bdat:2.0.0-s_2.10",
+                "s3a://{{ params.BUCKET_NAME }}/{{ params.s3_script_bucket }}/process_i94_fact_data.py",
+
+            ],
+        },
+    },
+    {
+        "Name": "Data Quality Checks",
+        "ActionOnFailure": "CANCEL_AND_WAIT",
+        "HadoopJarStep": {
+            "Jar": "command-runner.jar",
+            "Args": [
+                "spark-submit",
+                "--deploy-mode",
+                "client",
+                "s3a://{{ params.BUCKET_NAME }}/{{ params.s3_script_bucket }}/data_quality_checks.py",
+
             ],
         },
     },
@@ -164,8 +181,8 @@ create_emr_instance = EmrCreateJobFlowOperator(
     dag=dag
 )
 
-step_adder = EmrAddStepsOperator(
-    task_id="add_steps",
+add_emr_job_steps = EmrAddStepsOperator(
+    task_id="add_emr_job_steps",
     job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
     aws_conn_id="aws_default",
     steps=SPARK_STEPS,
@@ -180,9 +197,10 @@ step_adder = EmrAddStepsOperator(
 
 # this value will let the sensor know the last step to watch
 last_step = len(SPARK_STEPS) - 1
+
 # wait for the steps to complete
-step_checker = EmrStepSensor(
-    task_id="watch_step",
+check_job_step_execution = EmrStepSensor(
+    task_id="check_job_step_execution",
     job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
     step_id="{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')["
     + str(last_step)
@@ -197,4 +215,4 @@ step_checker = EmrStepSensor(
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 
 
-start_operator >> create_emr_instance >> step_adder >> step_checker >> end_operator
+start_operator >> create_emr_instance >> add_emr_job_steps >> check_job_step_execution >> end_operator
