@@ -8,13 +8,13 @@ class SqlQueries:
         female_urban_population numeric(18,0),
         male_urban_population numeric(18,0),
         total_urban_population numeric(18,0),
-        CONSTRAINT state_key_pkey PRIMARY KEY(state_key)
+        CONSTRAINT state_key_pkey PRIMARY KEY(state_key))
     """)
     # TODO need to put a foreign key ref in here for the state key
     create_fact_table = ("""
         CREATE TABLE IF NOT EXISTS public.fact_arrivals ( 
-        arrival_id integer,
-        state_key varchar(2) NOT NULL,
+        arrival_id integer NOT NULL,
+        state_key varchar(2),
         month integer,
         average_age numeric(4,2),
         F integer,
@@ -25,7 +25,7 @@ class SqlQueries:
         pleasure numeric(18,0),
         student numeric(18,0),
         average_temperature numeric(4,2),
-        CONSTRAINT arrival_id_pkey PRIMARY KEY(arrival_id)
+        CONSTRAINT arrival_id_pkey PRIMARY KEY(arrival_id))
     """)
 
     # Selects records that we will insert into songplays table
