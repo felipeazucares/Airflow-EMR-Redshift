@@ -1,3 +1,5 @@
+from pyspark.sql import functions as F
+from helpers import SqlQueries
 from datetime import datetime, timedelta
 import logging
 import os
@@ -10,8 +12,7 @@ from airflow.contrib.operators.emr_create_job_flow_operator import (
 )
 from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
-
-from pyspark.sql import functions as F
+from
 
 
 # configuration information
@@ -21,7 +22,23 @@ s3_analytics_bucket = "analytics/"
 s3_script = "process_i94.py"
 s3_script_bucket = "pyspark_steps"
 
-# define tbhe EMR instance details
+
+def create_tables():
+    print('hi')
+    return
+
+
+def load_dimension_table():
+    print('hi')
+    return
+
+
+def load_fact_table():
+    print('hi')
+    return
+
+# define the EMR instance details
+
 
 # Boto3 job flow parameters see https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/emr.html#EMR.Client.run_job_flow
 JOB_FLOW_OVERRIDES = {
@@ -199,12 +216,42 @@ add_emr_job_steps = EmrAddStepsOperator(
 last_step = len(SPARK_STEPS) - 1
 
 # wait for the steps to complete
-check_job_step_execution = EmrStepSensor(
-    task_id="check_job_step_execution",
+check_emr_job_step_execution = EmrStepSensor(
+    task_id="check_emr_job_step_execution",
     job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
     step_id="{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')["
     + str(last_step)
     + "] }}",
+    aws_conn_id="aws_default",
+    dag=dag,
+)
+
+# Shutdown EMR cluster
+shutdown_EMR_cluster = PythonOperator(
+    task_id="shutdown_EMR_cluster",
+    python_callable="",
+    aws_conn_id="aws_default",
+    dag=dag,
+)
+# Now create redshift tables
+create_redshift_tables = PythonOperator(
+    task_id="create_redshift_tables",
+    python_callable="create_tables",
+    aws_conn_id="aws_default",
+    dag=dag,
+)
+
+# Now load things into the tables
+populate_dimension_table = DummyOperator(
+    task_id="populate_redshift_tables",
+    python_callable="populate_dimension_table",
+    aws_conn_id="aws_default",
+    dag=dag,
+)
+# Now load things into the fact tables
+populate_fact_table = DummyOperator(
+    task_id="populate_fact_table",
+    python_callable="load_fact_table",
     aws_conn_id="aws_default",
     dag=dag,
 )
@@ -215,4 +262,7 @@ check_job_step_execution = EmrStepSensor(
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 
 
-start_operator >> create_emr_instance >> add_emr_job_steps >> check_job_step_execution >> end_operator
+start_operator >> create_emr_instance >> add_emr_job_steps
+add_emr_job_steps >> check_emr_job_step_execution
+check_emr_job_step_execution >> shutdown_EMR_cluster
+create_redshift_tables >> populate_redshift_tables >> end_operator

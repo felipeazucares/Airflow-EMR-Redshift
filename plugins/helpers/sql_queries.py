@@ -1,4 +1,32 @@
 class SqlQueries:
+
+    create_dimension_table = ("""
+        CREATE TABLE public.dimension_state (
+        state_key varchar(2) NOT NULL,
+        state_name varchar(256),
+        average_age numeric(3,2),
+        female_urban_population numeric(18,0),
+        male_urban_population numeric(18,0),
+        total_urban_population numeric(18,0),
+        CONSTRAINT state_key_pkey PRIMARY KEY(state_key)
+    """)
+    # TODO need to put a foreign key ref in here for the state key
+    create_fact_table = ("""
+        arrival_id integer,
+        state_key varchar(2) NOT NULL,
+        month integer,
+        average_age numeric(4,2),
+        F integer,
+        M integer,
+        U integer,
+        X integer,
+        business numeric(18,0),
+        pleasure numeric(18,0),
+        student numeric(18,0),
+        average_temperature numeric(4,2),
+        CONSTRAINT arrival_id_pkey PRIMARY KEY(arrival_id)
+    """)
+
     # Selects records that we will insert into songplays table
     songplay_table_insert = ("""
         SELECT
