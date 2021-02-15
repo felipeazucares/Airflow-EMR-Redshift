@@ -12,8 +12,14 @@ from airflow.contrib.operators.emr_create_job_flow_operator import (
 )
 from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
-from
+from airflow.contrib.operators.emr_terminate_job_flow_operator import (
+    EmrTerminateJobFlowOperator,
+)
 
+from airflow.hooks.postgres_hook import PostgresHook
+from airflow.operators.postgres_operator import PostgresOperator
+from airflow.operators.python_operator import PythonOperator
+from helpers import SqlQueries
 
 # configuration information
 BUCKET_NAME = "capstone-suggars"
@@ -227,42 +233,37 @@ check_emr_job_step_execution = EmrStepSensor(
 )
 
 # Shutdown EMR cluster
-shutdown_EMR_cluster = PythonOperator(
-    task_id="shutdown_EMR_cluster",
-    python_callable="",
+shutdown_emr_cluster = EmrTerminateJobFlowOperator(
+    task_id="shutdown_emr_cluster",
+    job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
     aws_conn_id="aws_default",
     dag=dag,
 )
 # Now create redshift tables
 create_redshift_tables = PythonOperator(
     task_id="create_redshift_tables",
-    python_callable="create_tables",
-    aws_conn_id="aws_default",
+    python_callable=create_tables,
     dag=dag,
 )
 
 # Now load things into the tables
 populate_dimension_table = DummyOperator(
     task_id="populate_redshift_tables",
-    python_callable="populate_dimension_table",
+    python_callable=load_dimension_table,
     aws_conn_id="aws_default",
     dag=dag,
 )
 # Now load things into the fact tables
 populate_fact_table = DummyOperator(
     task_id="populate_fact_table",
-    python_callable="load_fact_table",
+    python_callable=load_fact_table,
     aws_conn_id="aws_default",
     dag=dag,
 )
 
-# TODO: need a dataquality operator in here. We can have it run after the step_checker while the cluster is still up
-# TODO: need to a process that breaks down the cluster as well
-
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 
 
-start_operator >> create_emr_instance >> add_emr_job_steps
-add_emr_job_steps >> check_emr_job_step_execution
-check_emr_job_step_execution >> shutdown_EMR_cluster
-create_redshift_tables >> populate_redshift_tables >> end_operator
+start_operator >> create_emr_instance >> add_emr_job_steps >> check_emr_job_step_execution
+check_emr_job_step_execution >> shutdown_emr_cluster >> create_redshift_tables
+create_redshift_tables >> populate_dimension_table >> populate_fact_table >> end_operator
