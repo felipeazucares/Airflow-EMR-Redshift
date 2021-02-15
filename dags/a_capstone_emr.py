@@ -29,20 +29,6 @@ s3_script = "process_i94.py"
 s3_script_bucket = "pyspark_steps"
 
 
-def create_tables():
-    print('hi')
-    return
-
-
-def load_dimension_table():
-    print('hi')
-    return
-
-
-def load_fact_table():
-    print('hi')
-    return
-
 # define the EMR instance details
 
 
@@ -239,11 +225,19 @@ shutdown_emr_cluster = EmrTerminateJobFlowOperator(
     aws_conn_id="aws_default",
     dag=dag,
 )
-# Now create redshift tables
-create_redshift_tables = PythonOperator(
-    task_id="create_redshift_tables",
-    python_callable=create_tables,
+# Now create dimension table
+create_dimension_table = PostgresOperator(
+    task_id="create_dimension_table",
     dag=dag,
+    postgres_conn_id="redshift",
+    sql=SqlQueries.create_dimension_table
+)
+# and create fact table
+create_fact_table = PostgresOperator(
+    task_id="create_fact_table",
+    dag=dag,
+    postgres_conn_id="redshift",
+    sql=SqlQueries.create_fact_table
 )
 
 # Now load things into the tables
@@ -265,5 +259,7 @@ end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 
 
 start_operator >> create_emr_instance >> add_emr_job_steps >> check_emr_job_step_execution
-check_emr_job_step_execution >> shutdown_emr_cluster >> create_redshift_tables
-create_redshift_tables >> populate_dimension_table >> populate_fact_table >> end_operator
+check_emr_job_step_execution >> shutdown_emr_cluster
+shutdown_emr_cluster >> [create_dimension_table,
+                         create_fact_table] >> populate_dimension_table
+populate_dimension_table >> populate_fact_table >> end_operator

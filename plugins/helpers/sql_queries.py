@@ -1,7 +1,7 @@
 class SqlQueries:
 
     create_dimension_table = ("""
-        CREATE TABLE public.dimension_state (
+        CREATE TABLE IF NOT EXISTS public.dimension_state (
         state_key varchar(2) NOT NULL,
         state_name varchar(256),
         average_age numeric(3,2),
@@ -12,6 +12,7 @@ class SqlQueries:
     """)
     # TODO need to put a foreign key ref in here for the state key
     create_fact_table = ("""
+        CREATE TABLE IF NOT EXISTS public.fact_arrivals ( 
         arrival_id integer,
         state_key varchar(2) NOT NULL,
         month integer,
