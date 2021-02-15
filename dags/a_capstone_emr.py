@@ -182,7 +182,7 @@ create_emr_instance = EmrCreateJobFlowOperator(
 )
 
 add_emr_job_steps = EmrAddStepsOperator(
-    task_id="add_steps",
+    task_id="add_emr_job_steps",
     job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
     aws_conn_id="aws_default",
     steps=SPARK_STEPS,
@@ -197,9 +197,10 @@ add_emr_job_steps = EmrAddStepsOperator(
 
 # this value will let the sensor know the last step to watch
 last_step = len(SPARK_STEPS) - 1
+
 # wait for the steps to complete
 check_job_step_execution = EmrStepSensor(
-    task_id="watch_step",
+    task_id="check_job_step_execution",
     job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
     step_id="{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')["
     + str(last_step)
@@ -207,14 +208,6 @@ check_job_step_execution = EmrStepSensor(
     aws_conn_id="aws_default",
     dag=dag,
 )
-
-# data_quality_check = EmrCreateJobFlowOperator(
-#     task_id="create_emr_cluster",
-#     job_flow_overrides=JOB_FLOW_OVERRIDES,
-#     aws_conn_id="aws_default",
-#     emr_conn_id="emr_default",
-#     dag=dag
-# )
 
 # TODO: need a dataquality operator in here. We can have it run after the step_checker while the cluster is still up
 # TODO: need to a process that breaks down the cluster as well

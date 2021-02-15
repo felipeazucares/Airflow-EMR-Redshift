@@ -25,8 +25,6 @@ def unionAll(*dfs):
 
 def create_spark_session():
     """ Create spark session and return """
-# fails with java.lang.ClassNotFoundException: Failed to find data source: com.github.saurfang.sas.spa
-#! TRY just connecting with the CLI rather than steps
     spark = (SparkSession.builder.
              enableHiveSupport().getOrCreate())
     return spark
