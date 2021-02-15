@@ -264,7 +264,7 @@ populate_dimension_table = StageToRedshiftOperator(
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     table="dimension_state",
-    s3_bucket=BUCKET_NAME+s3_analytics_bucket,
+    s3_bucket=BUCKET_NAME+'/'+s3_analytics_bucket,
     s3_key="dim_state",
     context=True
 )
