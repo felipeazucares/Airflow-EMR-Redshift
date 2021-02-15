@@ -125,6 +125,20 @@ SPARK_STEPS = [
         },
     },
     {
+        "Name": "Data Quality Checks",
+        "ActionOnFailure": "CANCEL_AND_WAIT",
+        "HadoopJarStep": {
+            "Jar": "command-runner.jar",
+            "Args": [
+                "spark-submit",
+                "--deploy-mode",
+                "client",
+                "s3a://{{ params.BUCKET_NAME }}/{{ params.s3_script_bucket }}/data_quality_checks.py",
+
+            ],
+        },
+    },
+    {
         "Name": "Move processed data from HDFS to S3",
         "ActionOnFailure": "CANCEL_AND_WAIT",
         "HadoopJarStep": {
@@ -167,7 +181,7 @@ create_emr_instance = EmrCreateJobFlowOperator(
     dag=dag
 )
 
-step_adder = EmrAddStepsOperator(
+add_emr_job_steps = EmrAddStepsOperator(
     task_id="add_steps",
     job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
     aws_conn_id="aws_default",
@@ -184,7 +198,7 @@ step_adder = EmrAddStepsOperator(
 # this value will let the sensor know the last step to watch
 last_step = len(SPARK_STEPS) - 1
 # wait for the steps to complete
-step_checker = EmrStepSensor(
+check_job_step_execution = EmrStepSensor(
     task_id="watch_step",
     job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
     step_id="{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')["
@@ -194,10 +208,18 @@ step_checker = EmrStepSensor(
     dag=dag,
 )
 
+# data_quality_check = EmrCreateJobFlowOperator(
+#     task_id="create_emr_cluster",
+#     job_flow_overrides=JOB_FLOW_OVERRIDES,
+#     aws_conn_id="aws_default",
+#     emr_conn_id="emr_default",
+#     dag=dag
+# )
+
 # TODO: need a dataquality operator in here. We can have it run after the step_checker while the cluster is still up
 # TODO: need to a process that breaks down the cluster as well
 
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 
 
-start_operator >> create_emr_instance >> step_adder >> step_checker >> end_operator
+start_operator >> create_emr_instance >> add_emr_job_steps >> check_job_step_execution >> end_operator
