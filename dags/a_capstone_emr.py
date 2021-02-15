@@ -117,8 +117,10 @@ SPARK_STEPS = [
                 "spark-submit",
                 "--deploy-mode",
                 "client",
+                "--packages",
+                "saurfang:spark-sas7bdat:2.0.0-s_2.10",
                 "s3a://{{ params.BUCKET_NAME }}/{{ params.s3_script_bucket }}/process_i94_fact_data.py",
-                "--packages saurfang:spark-sas7bdat:2.0.0-s_2.10 ",
+
             ],
         },
     },

@@ -14,7 +14,7 @@ HDFS_INPUT = "hdfs:///user/hadoop/i94"
 HDFS_OUTPUT = "hdfs:///user/hadoop/analytics"
 TEMPERATURE_FILE = "fact_temperature_state"
 STATE_FILE = "dim_state"
-I94_FILE = "8-83510-i94-data-2016"
+I94_FILE = "18-83510-I94-Data-2016/i94_apr16_sub.sas7bdat"
 
 # helper functions
 
@@ -26,19 +26,9 @@ def unionAll(*dfs):
 def create_spark_session():
     """ Create spark session and return """
 # fails with java.lang.ClassNotFoundException: Failed to find data source: com.github.saurfang.sas.spa
-#! TRY what's iin the other capstone code
-#! TRY the mentors on udacity
 #! TRY just connecting with the CLI rather than steps
     spark = (SparkSession.builder.
              enableHiveSupport().getOrCreate())
-    #hadoop_conf = spark._jsc.hadoopConfiguration()
-    #hadoop_conf.set("fs.s3a.access.key", AWS_ACCESS_KEY)
-    #hadoop_conf.set("fs.s3a.secret.key", AWS_SECRET_KEY)
-    #hadoop_conf.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-    #hadoop_conf.set("com.amazonaws.services.s3.enableV4", "true")
-    # hadoop_conf.set("fs.s3a.aws.credentials.provider",
-    #               "org.apache.hadoop.fs.s3a.BasicAWSCredentialsProvider")
-    #hadoop_conf.set("fs.s3a.endpoint", "us-west-2.amazonaws.com")
     return spark
 
 
@@ -145,8 +135,12 @@ def build_fact_table(df_fact_i94_age_gender_visa, df_fact_temperature_by_state_k
     # Now we can join this with the temperature data in the temp fact table
     # join on state address and month
     df_fact_arrivals_table = df_fact_i94_age_gender_visa \
-        .join(df_fact_temperature_by_state_key, (df_fact_i94_age_gender_visa.month == df_fact_temperature_by_state_key.month) & (df_fact_i94_age_gender_visa.state_key == df_fact_temperature_by_state_key.state_key), "inner")
+        .join(df_fact_temperature_by_state_key, (df_fact_i94_age_gender_visa.month == df_fact_temperature_by_state_key.month) & (df_fact_i94_age_gender_visa.state_key == df_fact_temperature_by_state_key.state_key), "inner") \
+        .drop(df_fact_temperature_by_state_key.state_key) \
+        .drop(df_fact_temperature_by_state_key.month)
+
     df_fact_arrivals_table.show(100)
+
     return df_fact_arrivals_table
 
 
