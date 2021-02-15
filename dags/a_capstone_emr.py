@@ -19,6 +19,7 @@ from airflow.contrib.operators.emr_terminate_job_flow_operator import (
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
+from airflow.operators import StageToRedshiftOperator
 from helpers import SqlQueries
 
 # configuration information
@@ -30,6 +31,15 @@ s3_script_bucket = "pyspark_steps"
 
 
 # define the EMR instance details
+
+def load_dimension_table():
+    print('load_dimension_table')
+    return
+
+
+def load_fact_table():
+    print('load_dimension_table')
+    return
 
 
 # Boto3 job flow parameters see https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/emr.html#EMR.Client.run_job_flow
@@ -190,8 +200,8 @@ create_emr_instance = EmrCreateJobFlowOperator(
     dag=dag
 )
 
-add_emr_job_steps = EmrAddStepsOperator(
-    task_id="add_emr_job_steps",
+add_steps = EmrAddStepsOperator(
+    task_id="add_steps",
     job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
     aws_conn_id="aws_default",
     steps=SPARK_STEPS,
@@ -208,8 +218,8 @@ add_emr_job_steps = EmrAddStepsOperator(
 last_step = len(SPARK_STEPS) - 1
 
 # wait for the steps to complete
-check_emr_job_step_execution = EmrStepSensor(
-    task_id="check_emr_job_step_execution",
+step_adder = EmrStepSensor(
+    task_id="watch_step",
     job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
     step_id="{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')["
     + str(last_step)
@@ -241,12 +251,29 @@ create_fact_table = PostgresOperator(
 )
 
 # Now load things into the tables
-populate_dimension_table = DummyOperator(
-    task_id="populate_redshift_tables",
-    python_callable=load_dimension_table,
-    aws_conn_id="aws_default",
+# populate_dimension_table = DummyOperator(
+#     task_id="populate_redshift_tables",
+#     python_callable=load_dimension_table,
+#     aws_conn_id="aws_default",
+#     dag=dag,
+# )
+
+populate_dimension_table = StageToRedshiftOperator(
+    task_id="populate_dimension_table",
     dag=dag,
+    redshift_conn_id="redshift",
+    aws_credentials_id="aws_credentials",
+    table="staging_songs",
+    s3_bucket=BUCKET_NAME+'/'+s3_analytics_bucket,
+    s3_key="dim_state",
+    context=True
 )
+
+# COPY listing
+# FROM 's3://mybucket/data/listings/parquet/'
+# IAM_ROLE 'arn:aws:iam::0123456789012:role/MyRedshiftRole'
+# FORMAT AS PARQUET
+
 # Now load things into the fact tables
 populate_fact_table = DummyOperator(
     task_id="populate_fact_table",
@@ -258,8 +285,8 @@ populate_fact_table = DummyOperator(
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 
 
-start_operator >> create_emr_instance >> add_emr_job_steps >> check_emr_job_step_execution
-check_emr_job_step_execution >> shutdown_emr_cluster
+start_operator >> create_emr_instance >> add_steps >> step_adder
+step_adder >> shutdown_emr_cluster
 shutdown_emr_cluster >> [create_dimension_table,
                          create_fact_table] >> populate_dimension_table
 populate_dimension_table >> populate_fact_table >> end_operator
