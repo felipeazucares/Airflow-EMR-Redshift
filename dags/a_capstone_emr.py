@@ -168,7 +168,7 @@ default_args = {
     "depends_on_past": False,
     "email_on_failure": False,
     "email_on_retry": False,
-    "retries": 1,
+    "retries": 3,
     "retry_delay": timedelta(minutes=3),
 }
 
@@ -190,7 +190,22 @@ create_emr_instance = EmrCreateJobFlowOperator(
     dag=dag
 )
 
-add_steps = EmrAddStepsOperator(
+# add_steps = EmrAddStepsOperator(
+#     task_id="add_steps",
+#     job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
+#     aws_conn_id="aws_default",
+#     steps=SPARK_STEPS,
+#     params={  # these params are used to fill the paramterized values in SPARK_STEPS json
+#         "BUCKET_NAME": BUCKET_NAME,
+#         "s3_data": s3_data_bucket,
+#         "s3_script_bucket": s3_script_bucket,
+#         "s3_output": s3_analytics_bucket,
+#     },
+#     dag=dag,
+# )
+
+# Add your steps to the EMR cluster
+step_adder = EmrAddStepsOperator(
     task_id="add_steps",
     job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
     aws_conn_id="aws_default",
@@ -204,11 +219,11 @@ add_steps = EmrAddStepsOperator(
     dag=dag,
 )
 
-# # this value will let the sensor know the last step to watch
-last_step = len(SPARK_STEPS) - 1
 
+# this value will let the sensor know the last step to watch
+last_step = len(SPARK_STEPS) - 1
 # wait for the steps to complete
-step_adder = EmrStepSensor(
+step_checker = EmrStepSensor(
     task_id="watch_step",
     job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
     step_id="{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')["
@@ -263,8 +278,8 @@ populate_fact_table = StageToRedshiftOperator(
 
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 
-start_operator >> create_emr_instance >> add_steps >> step_adder
-step_adder >> shutdown_emr_cluster
+start_operator >> create_emr_instance >> step_adder
+step_adder >> step_checker >> shutdown_emr_cluster
 shutdown_emr_cluster >> create_dimension_table >> create_fact_table >> populate_dimension_table
 populate_dimension_table >> populate_fact_table >> end_operator
 
