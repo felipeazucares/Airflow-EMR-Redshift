@@ -11,7 +11,7 @@ class SqlQueries:
     """)
     create_fact_table = ("""
         CREATE TABLE IF NOT EXISTS public.fact_arrivals ( 
-        state_key varchar(2)
+        state_key varchar(2),
         month integer,
         year integer,
         average_age float8,
