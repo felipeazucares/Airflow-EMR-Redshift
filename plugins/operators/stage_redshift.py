@@ -43,7 +43,7 @@ class StageToRedshiftOperator(BaseOperator):
         self.log.info("Copying data from S3 into Redshift table")
         rendered_key = self.s3_key.format(**context)
         # rendered_key will contain the appropriate date so that we can backfill
-        s3_path = "s3://{}/{}".format(self.s3_bucket, rendered_key)
+        s3_path = "s3://{}{}".format(self.s3_bucket, rendered_key)
         formatted_sql = StageToRedshiftOperator.copy_sql.format(
             self.table,
             s3_path,

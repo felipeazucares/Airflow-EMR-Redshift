@@ -76,7 +76,7 @@ def read_i94_data(spark, filename):
 
 def read_parquet_file(spark, filename):
     """ Read the named parquet file and return it as a dataframe """
-    df_input = spark.read.parquet(filename)
+    df_input = spark.read.json(filename)
     return df_input
 
 
@@ -144,7 +144,7 @@ def build_fact_table(df_fact_i94_age_gender_visa, df_fact_temperature_by_state_k
 
 def write_parquet(dataset, output_file):
     """ Output provided dataset to parquet file for use later """
-    dataset.write.mode("overwrite").parquet(output_file)
+    dataset.write.mode("overwrite").json(output_file)
 
 
 def main():
