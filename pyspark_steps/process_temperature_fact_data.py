@@ -94,19 +94,19 @@ def get_state_key_for_temperature_data(df_fact_temperature_by_state_name, df_dim
     """ Join the temperature data to the state dimension table to get the state_key which is not included in the temperature data """
     df_fact_temperature_by_state_key = df_fact_temperature_by_state_name \
         .join(df_dimension_state_table, df_fact_temperature_by_state_name.state_name == df_dimension_state_table.state_name, "inner") \
-        .select("state_key", "average_temperature", "month")
+        .select("state_key", F.round("average_temperature", 2).alias("average_temperature"), "month")
     return df_fact_temperature_by_state_key
 
 
 def read_dimension_state_table(filename):
     """ Read the dimension state table """
-    df_dimension_state_table = spark.read.parquet(filename)
+    df_dimension_state_table = spark.read.json(filename)
     return df_dimension_state_table
 
 
 def write_parquet(dataset, output_file):
     """ Output provided dataset to parquet file for use later """
-    dataset.write.mode("overwrite").parquet(output_file)
+    dataset.write.mode("overwrite").json(output_file)
 
 
 def main():
