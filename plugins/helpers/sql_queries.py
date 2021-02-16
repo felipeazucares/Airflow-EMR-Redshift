@@ -14,7 +14,7 @@ class SqlQueries:
         arrival_id bigint identity(0, 1),
         state_key varchar(2),
         month integer,
-        average_age decimal(5,1),
+        average_age float8,
         F integer,
         M integer,
         U integer,
