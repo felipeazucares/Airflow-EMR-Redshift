@@ -67,9 +67,10 @@ def read_i94_data(spark, filename):
         filename, inferInt=True)
 
     # keep just month, age, gender, airport, and visa_code
-    df_i94 = df_i94.select(df_i94.i94mon.alias("month"), df_i94.i94bir.alias("age"), df_i94.gender.alias("gender"), df_i94.i94port.alias("airport_key"), df_i94.i94visa.alias("visa_key")) \
+    df_i94 = df_i94.select(df_i94.i94mon.alias("month"), df_i94.i94yr.alias("year"), df_i94.i94bir.alias("age"), df_i94.gender.alias("gender"), df_i94.i94port.alias("airport_key"), df_i94.i94visa.alias("visa_key")) \
         .withColumn("month", F.col("month").cast("Integer")) \
-        .sort("month", "airport_key")
+        .withColumn("year", F.col("year").cast("Integer")) \
+        .sort("month", "year", "airport_key")
 
     return df_i94
 
@@ -85,30 +86,31 @@ def join_and_agg_i94(df_i94, df_airport):
 
     # First join the i94 raw data to the airport table to provide us with a valid state for each arrivee
     df_i94_by_state = df_i94.join(df_airport, df_i94.airport_key == df_airport.local_code, "inner") \
-        .select(df_i94.month, df_i94.age, df_i94.gender, df_i94.visa_key, df_airport.state_key) \
+        .select(df_i94.month, df_i94.year, df_i94.age, df_i94.gender, df_i94.visa_key, df_airport.state_key) \
         .sort("month", "state_key")
 
     # Now clean up the result and remove any nulls in the fact columns we're interested in
     df_i94_cleansed = df_i94_by_state.filter((df_i94_by_state.age.isNotNull()) & (df_i94_by_state.month.isNotNull()) & (
-        df_i94_by_state.gender.isNotNull()) & (df_i94_by_state.visa_key.isNotNull()))
+        df_i94_by_state.gender.isNotNull()) & (df_i94_by_state.visa_key.isNotNull()) & (df_i94_by_state.year.isNotNull()))
 
     # Pivot the result to aggregate count values to get counts for genders by state and month
-    df_i94_fact_gender = df_i94_cleansed.groupBy("state_key", "month").pivot("gender").count().sort("state_key", "month") \
-        .sort("state_key", "month")
+    df_i94_fact_gender = df_i94_cleansed.groupBy("state_key", "month", "year").pivot("gender").count()\
+        .sort("state_key", "year", "month")
 
     # Do the same for visas
-    df_i94_fact_visa = df_i94_cleansed.groupBy("state_key", "month").pivot("visa_key").count().sort("state_key", "month") \
-        .sort("state_key", "month")
+    df_i94_fact_visa = df_i94_cleansed.groupBy("state_key", "month", "year").pivot("visa_key").count()\
+        .sort("state_key", "year", "month")
 
     # Agg to get the average age per month and state, rename column and round to 2.dp
-    df_i94_fact_age = df_i94_cleansed.groupBy("state_key", "month").avg("age").sort("state_key", "month") \
-        .select(df_i94_cleansed.state_key, df_i94_cleansed.month, F.round(F.col("avg(age)"), 1).alias("average_age")) \
+    df_i94_fact_age = df_i94_cleansed.groupBy("state_key", "month", "year").avg("age") \
+        .select(df_i94_cleansed.state_key, df_i94_cleansed.month, df_i94_cleansed.year, F.round(F.col("avg(age)"), 1).alias("average_age")) \
         .sort("state_key", "month")
 
     # Join the age dataframe with gender counts
     df_i94_fact_age_gender = df_i94_fact_age \
         .join(df_i94_fact_gender, (df_i94_fact_age.month == df_i94_fact_gender.month) & (df_i94_fact_age.state_key == df_i94_fact_gender.state_key), "inner") \
         .drop(df_i94_fact_gender.month) \
+        .drop(df_i94_fact_gender.year) \
         .drop(df_i94_fact_gender.state_key)
 
     # and now join that to the visa type counts
@@ -116,13 +118,14 @@ def join_and_agg_i94(df_i94, df_airport):
         .join(df_i94_fact_visa, (df_i94_fact_age_gender.month == df_i94_fact_visa.month) & (df_i94_fact_age_gender.state_key == df_i94_fact_visa.state_key), "inner") \
         .drop(df_i94_fact_visa.month) \
         .drop(df_i94_fact_visa.state_key) \
+        .drop(df_i94_fact_visa.year) \
         .withColumnRenamed("1.0", "business") \
         .withColumnRenamed("2.0", "pleasure") \
         .withColumnRenamed("3.0", "student") \
-        .sort(df_i94_fact_age_gender.state_key, df_i94_fact_age_gender.month)
+        .sort(df_i94_fact_age_gender.state_key, df_i94_fact_age_gender.month, df_i94_fact_age_gender.year)
 
     # select and reorder the columns that we want
-    df_fact_i94_age_gender_visa = df_i94_fact_age_gender_visa.select(df_i94_fact_age_gender_visa.state_key, df_i94_fact_age_gender_visa.month, df_i94_fact_age_gender_visa.average_age, df_i94_fact_age_gender_visa.F,
+    df_fact_i94_age_gender_visa = df_i94_fact_age_gender_visa.select(df_i94_fact_age_gender_visa.state_key, df_i94_fact_age_gender_visa.month, df_i94_fact_age_gender_visa.year, df_i94_fact_age_gender_visa.average_age, df_i94_fact_age_gender_visa.F,
                                                                      df_i94_fact_age_gender_visa.M, df_i94_fact_age_gender_visa.U, df_i94_fact_age_gender_visa.X, df_i94_fact_age_gender_visa.business, df_i94_fact_age_gender_visa.pleasure, df_i94_fact_age_gender_visa.student)
 
     return df_fact_i94_age_gender_visa

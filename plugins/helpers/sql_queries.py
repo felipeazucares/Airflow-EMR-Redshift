@@ -11,9 +11,9 @@ class SqlQueries:
     """)
     create_fact_table = ("""
         CREATE TABLE IF NOT EXISTS public.fact_arrivals ( 
-        arrival_id bigint identity(0, 1),
-        state_key varchar(2),
+        state_key varchar(2)
         month integer,
+        year integer,
         average_age float8,
         F integer,
         M integer,
@@ -23,7 +23,7 @@ class SqlQueries:
         pleasure integer,
         student integer,
         average_temperature float8,
-        CONSTRAINT arrival_id_pkey PRIMARY KEY(arrival_id),
+        CONSTRAINT arrivals_id_pkey PRIMARY KEY(arrival_id),
         CONSTRAINT state_key_fk
         FOREIGN KEY (state_key)
         REFERENCES dimension_state(state_key))
