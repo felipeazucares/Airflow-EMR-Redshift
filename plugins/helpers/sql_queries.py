@@ -23,7 +23,7 @@ class SqlQueries:
         pleasure integer,
         student integer,
         average_temperature float8,
-        CONSTRAINT arrivals_id_pkey PRIMARY KEY(arrival_id),
+        CONSTRAINT arrivals_id_pkey PRIMARY KEY(state_key, month, year),
         CONSTRAINT state_key_fk
         FOREIGN KEY (state_key)
         REFERENCES dimension_state(state_key))
