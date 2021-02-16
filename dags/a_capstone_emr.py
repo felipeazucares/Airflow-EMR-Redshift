@@ -268,6 +268,16 @@ populate_dimension_table = StageToRedshiftOperator(
     s3_key="dim_state",
     context=True
 )
+populate_fact_table = StageToRedshiftOperator(
+    task_id="populate_fact_table",
+    dag=dag,
+    redshift_conn_id="redshift",
+    aws_credentials_id="aws_credentials",
+    table="fact_arrivals",
+    s3_bucket=BUCKET_NAME+'/'+s3_analytics_bucket,
+    s3_key="fact_arrivals_by_state_month",
+    context=True
+)
 
 # COPY listing
 # FROM 's3://mybucket/data/listings/parquet/'
@@ -275,12 +285,6 @@ populate_dimension_table = StageToRedshiftOperator(
 # FORMAT AS PARQUET
 
 # Now load things into the fact tables
-populate_fact_table = DummyOperator(
-    task_id="populate_fact_table",
-    python_callable=load_fact_table,
-    aws_conn_id="aws_default",
-    dag=dag,
-)
 
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 
