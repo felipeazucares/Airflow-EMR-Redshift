@@ -147,7 +147,7 @@ def build_fact_table(df_fact_i94_age_gender_visa, df_fact_temperature_by_state_k
 
 def write_parquet(dataset, output_file):
     """ Output provided dataset to parquet file for use later """
-    dataset.write.mode("overwrite").json(output_file)
+    dataset.write.mode("overwrite").parquet(output_file)
 
 
 def main():
