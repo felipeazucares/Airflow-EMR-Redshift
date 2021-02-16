@@ -77,7 +77,7 @@ def aggregate_city_demographc_data(df_demographic):
 def write_parquet(dataset, output_file):
     """ output provided dataset to parquet file for use later """
     # write the non variant dimension data out to a parquet file - state dimension table
-    dataset.write.mode("overwrite").json(output_file)
+    dataset.write.mode("overwrite").parquet(output_file)
 
 
 def main():

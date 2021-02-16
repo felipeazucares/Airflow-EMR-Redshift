@@ -192,49 +192,49 @@ dag = DAG("a_capstone_emr",
 start_operator = DummyOperator(task_id="Begin_execution",  dag=dag)
 
 
-create_emr_instance = EmrCreateJobFlowOperator(
-    task_id="create_emr_cluster",
-    job_flow_overrides=JOB_FLOW_OVERRIDES,
-    aws_conn_id="aws_default",
-    emr_conn_id="emr_default",
-    dag=dag
-)
+# create_emr_instance = EmrCreateJobFlowOperator(
+#     task_id="create_emr_cluster",
+#     job_flow_overrides=JOB_FLOW_OVERRIDES,
+#     aws_conn_id="aws_default",
+#     emr_conn_id="emr_default",
+#     dag=dag
+# )
 
-add_steps = EmrAddStepsOperator(
-    task_id="add_steps",
-    job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
-    aws_conn_id="aws_default",
-    steps=SPARK_STEPS,
-    params={  # these params are used to fill the paramterized values in SPARK_STEPS json
-        "BUCKET_NAME": BUCKET_NAME,
-        "s3_data": s3_data_bucket,
-        "s3_script_bucket": s3_script_bucket,
-        "s3_output": s3_analytics_bucket,
-    },
-    dag=dag,
-)
+# add_steps = EmrAddStepsOperator(
+#     task_id="add_steps",
+#     job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
+#     aws_conn_id="aws_default",
+#     steps=SPARK_STEPS,
+#     params={  # these params are used to fill the paramterized values in SPARK_STEPS json
+#         "BUCKET_NAME": BUCKET_NAME,
+#         "s3_data": s3_data_bucket,
+#         "s3_script_bucket": s3_script_bucket,
+#         "s3_output": s3_analytics_bucket,
+#     },
+#     dag=dag,
+# )
 
-# this value will let the sensor know the last step to watch
-last_step = len(SPARK_STEPS) - 1
+# # this value will let the sensor know the last step to watch
+# last_step = len(SPARK_STEPS) - 1
 
 # wait for the steps to complete
-step_adder = EmrStepSensor(
-    task_id="watch_step",
-    job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
-    step_id="{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')["
-    + str(last_step)
-    + "] }}",
-    aws_conn_id="aws_default",
-    dag=dag,
-)
+# step_adder = EmrStepSensor(
+#     task_id="watch_step",
+#     job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
+#     step_id="{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')["
+#     + str(last_step)
+#     + "] }}",
+#     aws_conn_id="aws_default",
+#     dag=dag,
+# )
 
 # Shutdown EMR cluster
-shutdown_emr_cluster = EmrTerminateJobFlowOperator(
-    task_id="shutdown_emr_cluster",
-    job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
-    aws_conn_id="aws_default",
-    dag=dag,
-)
+# shutdown_emr_cluster = EmrTerminateJobFlowOperator(
+#     task_id="shutdown_emr_cluster",
+#     job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
+#     aws_conn_id="aws_default",
+#     dag=dag,
+# )
 # Now create dimension table
 create_dimension_table = PostgresOperator(
     task_id="create_dimension_table",
@@ -271,21 +271,15 @@ populate_fact_table = StageToRedshiftOperator(
     context=True
 )
 
-# COPY listing
-# FROM 's3://mybucket/data/listings/parquet/'
-# IAM_ROLE 'arn:aws:iam::0123456789012:role/MyRedshiftRole'
-# FORMAT AS PARQUET
-
-# Now load things into the fact tables
 
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 
 
-start_operator >> create_emr_instance >> add_steps >> step_adder
-step_adder >> shutdown_emr_cluster
-shutdown_emr_cluster >> [create_dimension_table,
-                         create_fact_table] >> populate_dimension_table
-populate_dimension_table >> populate_fact_table >> end_operator
-
-# start_operator >> create_dimension_table >> create_fact_table >> populate_dimension_table
+# start_operator >> create_emr_instance >> add_steps >> step_adder
+# step_adder >> shutdown_emr_cluster
+# shutdown_emr_cluster >> [create_dimension_table,
+#                          create_fact_table] >> populate_dimension_table
 # populate_dimension_table >> populate_fact_table >> end_operator
+
+start_operator >> create_dimension_table >> create_fact_table >> populate_dimension_table
+populate_dimension_table >> populate_fact_table >> end_operator

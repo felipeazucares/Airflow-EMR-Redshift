@@ -100,13 +100,13 @@ def get_state_key_for_temperature_data(df_fact_temperature_by_state_name, df_dim
 
 def read_dimension_state_table(filename):
     """ Read the dimension state table """
-    df_dimension_state_table = spark.read.json(filename)
+    df_dimension_state_table = spark.read.parquet(filename)
     return df_dimension_state_table
 
 
 def write_parquet(dataset, output_file):
     """ Output provided dataset to parquet file for use later """
-    dataset.write.mode("overwrite").json(output_file)
+    dataset.write.mode("overwrite").parquet(output_file)
 
 
 def main():
