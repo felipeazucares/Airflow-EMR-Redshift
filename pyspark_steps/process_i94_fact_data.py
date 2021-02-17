@@ -1,6 +1,9 @@
 # Takes the GlobalLandTemperaturesByState.csv data file, generates months dtaa for missing months and stores it as a parquet file
 # Philip Suggars
 # February 202
+from os import listdir
+from os.path import isfile, join
+import logging
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, \
@@ -14,13 +17,31 @@ HDFS_INPUT = "hdfs:///user/hadoop/i94"
 HDFS_OUTPUT = "hdfs:///user/hadoop/analytics"
 TEMPERATURE_FILE = "fact_temperature_state"
 STATE_FILE = "dim_state"
+I94_PATH = "18-83510-I94-Data-2016/"
 I94_FILE = "18-83510-I94-Data-2016/i94_apr16_sub.sas7bdat"
 
-# helper functions
+# Helper functions
 
 
-def unionAll(*dfs):
-    return reduce(DataFrame.unionAll, dfs)
+def get_files(path):
+    """ returns a list of fully qualified files for the gven path """
+    # temp code to reduce total number of files we're reading
+    file_list = []
+    count = 0
+    for item in listdir(path):
+        # ! temp code to limit number of files to 2 for test purposes
+        count = count + 1
+        if count < 3:
+            # ! end of temp
+            if isfile(join(path, item)):
+                file_list.append(join(path, item))
+    print(file_list)
+    return file_list
+
+
+def append_datasets(*datasets):
+    """ performs a union operation on the provided datasets """
+    return reduce(DataFrame.unionAll, datasets)
 
 
 def create_spark_session():
@@ -28,6 +49,8 @@ def create_spark_session():
     spark = (SparkSession.builder.
              enableHiveSupport().getOrCreate())
     return spark
+
+# Processing functions
 
 
 def read_and_process_airport_data(spark, filename, df_dimension_state_table):
@@ -147,7 +170,7 @@ def build_fact_table(df_fact_i94_age_gender_visa, df_fact_temperature_by_state_k
 
 def write_parquet(dataset, output_file):
     """ Output provided dataset to parquet file for use later """
-    dataset.write.mode("overwrite").parquet(output_file)
+    dataset.write.parquet(output_file)
 
 
 def main():
@@ -161,9 +184,14 @@ df_dimension_state_table = read_parquet_file(
 # Read the airport codes datafile csv
 df_airport = read_and_process_airport_data(
     spark, HDFS_INPUT + '/' + INPUT_FILE, df_dimension_state_table)
-# Read the i94 data from the SAS file
-df_i94 = read_i94_data(
-    spark, HDFS_INPUT + '/' + I94_FILE)
+# get a list of all the datafiles in the i94 directory
+i94_datafile_list = get_files(I94_PATH)
+# iterate over the list to create a list of data sets
+i94_total_data_set = map(
+    lambda filename: read_i94_data(spark, filename), i94_datafile_list)
+# union them all toegther so we can work with them
+df_i94 = append_datasets(*i94_total_data_set)
+
 # Join the i94 data to the airport codes on local_code to give each arrivee a state_key
 # summarise i94 data by gender count, avergae age and count of visa type
 df_fact_i94_age_gender_visa = join_and_agg_i94(df_i94, df_airport)

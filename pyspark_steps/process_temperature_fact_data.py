@@ -106,7 +106,7 @@ def read_dimension_state_table(filename):
 
 def write_parquet(dataset, output_file):
     """ Output provided dataset to parquet file for use later """
-    dataset.write.mode("overwrite").parquet(output_file)
+    dataset.write.parquet(output_file)
 
 
 def main():

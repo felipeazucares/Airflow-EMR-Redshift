@@ -5,7 +5,6 @@
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
 from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, \
     IntegerType as Int, LongType as Lng, TimestampType as Tms, DateType as Dt, FloatType as Ft
 
@@ -52,6 +51,7 @@ def read_city_demographic_data(spark, filename):
 
 def aggregate_city_demographc_data(df_demographic):
     """ take city demographic data and aggregate up to state level - return aggregate state aggregate dataframe """
+
     # the demographic data has 4 entires per city based on ethnic breakdown - we only want the city->state relationships so select distinct cities
     df_demographic = df_demographic.dropDuplicates(["City"])
 
@@ -67,17 +67,18 @@ def aggregate_city_demographc_data(df_demographic):
 
     # create dimension table for non time variant values
     df_dimension_state_table = df_demo_by_state \
-        .select(F.col("state_code").alias("state_key"), "state_name", F.round("average_age", 2).alias("average_age"), "female_urban_population", "male_urban_population", "total_urban_population") \
+        .select(F.col("state_code").alias("state_key"), "state_name", "average_age", "female_urban_population", "male_urban_population", "total_urban_population") \
         .dropDuplicates(["state_key"]) \
         .sort("state_key")
-    df_dimension_state_table.show(20)
+
+    df_dimension_state_table.show(100)
     return df_dimension_state_table
 
 
 def write_parquet(dataset, output_file):
     """ output provided dataset to parquet file for use later """
     # write the non variant dimension data out to a parquet file - state dimension table
-    dataset.write.mode("overwrite").parquet(output_file)
+    dataset.write.parquet(output_file)
 
 
 def main():
