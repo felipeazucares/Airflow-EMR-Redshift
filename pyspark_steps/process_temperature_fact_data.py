@@ -8,7 +8,7 @@ from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as
     IntegerType as Int, LongType as Lng, TimestampType as Tms, DateType as Dt, FloatType as Ft
 from functools import reduce
 from pyspark.sql import DataFrame
-
+import logging
 INPUT_FILE = "GlobalLandTemperaturesByState.csv"
 OUTPUT_FILE = "fact_temperature_state"
 HDFS_INPUT = "hdfs:///user/hadoop/i94"
@@ -24,7 +24,7 @@ def unionAll(*dfs):
 
 def create_spark_session():
     """ Create spark session and return """
-
+    logging.info("Creating spark session")
     spark = (SparkSession.builder.
              config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.2").
              enableHiveSupport().getOrCreate())
@@ -34,6 +34,7 @@ def create_spark_session():
 def read_temperature_data(spark, filename):
     """ Read temperature by state data file into spark dataframe """
 
+    logging.info("Reading temperature data from {}".format(filename))
     temperature_state_schema = R([
         Fld("dt", Dt()),
         Fld("AverageTemperature", Ft()),
@@ -51,6 +52,7 @@ def read_temperature_data(spark, filename):
 def prepare_temperature_by_state(df_temperature_by_state):
     """ Extract month and year columns for date information """
     # add in month & year to dataset
+    logging.info("Prep temperature data")
     df_temperature_by_state = df_temperature_by_state.select(
         "dt", "AverageTemperature", "State", "Country")
     df_temperature_by_state = df_temperature_by_state.withColumn(
@@ -66,6 +68,7 @@ def generate_missing_temperature_by_state(df_temperature_by_state):
     # Generate data for the missing three months of the year 2013 as we only have data from Jan-Sept
     # To do this we'll average Oct-Dec for 2010-2012
     # First extract the months and yeasr we want from the temperature data
+    logging.info("Generatng missing temperature data")
     df_temp_to_average = df_temperature_by_state.filter((df_temperature_by_state["Country"] == "United States") & ((df_temperature_by_state["Year"] == 2010) | (df_temperature_by_state["Year"] == 2011) | (
         df_temperature_by_state["Year"] == 2012)) & ((df_temperature_by_state["Month"] == 10) | (df_temperature_by_state["Month"] == 11) | (df_temperature_by_state["Month"] == 12)))
 
@@ -92,6 +95,7 @@ def generate_missing_temperature_by_state(df_temperature_by_state):
 
 def get_state_key_for_temperature_data(df_fact_temperature_by_state_name, df_dimension_state_table):
     """ Join the temperature data to the state dimension table to get the state_key which is not included in the temperature data """
+    logging.info("Generatng state_key for temperature data")
     df_fact_temperature_by_state_key = df_fact_temperature_by_state_name \
         .join(df_dimension_state_table, df_fact_temperature_by_state_name.state_name == df_dimension_state_table.state_name, "inner") \
         .select("state_key", F.round("average_temperature", 2).alias("average_temperature"), "month")
@@ -100,11 +104,13 @@ def get_state_key_for_temperature_data(df_fact_temperature_by_state_name, df_dim
 
 def read_dimension_state_table(filename):
     """ Read the dimension state table """
+    logging.info("Reading state information: {}".format(filename))
     df_dimension_state_table = spark.read.parquet(filename)
     return df_dimension_state_table
 
 
 def write_parquet(dataset, output_file):
+    logging.info("Writing state information: {}".format(output_file))
     """ Output provided dataset to parquet file for use later """
     dataset.write.parquet(output_file)
 
