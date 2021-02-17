@@ -27,7 +27,6 @@ def create_spark_session():
 
 def read_city_demographic_data(spark, filename):
     """ read named city data file into spark dataframe """
-
     logging.info("Reading demographic data: {}".format(filename))
     demographic_schema = R([
         Fld("City", Str()),
@@ -52,7 +51,6 @@ def read_city_demographic_data(spark, filename):
 
 def aggregate_city_demographc_data(df_demographic):
     """ take city demographic data and aggregate up to state level - return aggregate state aggregate dataframe """
-
     logging.info("Aggregating demographic")
     # the demographic data has 4 entires per city based on ethnic breakdown - we only want the city->state relationships so select distinct cities
     df_demographic = df_demographic.dropDuplicates(["City"])

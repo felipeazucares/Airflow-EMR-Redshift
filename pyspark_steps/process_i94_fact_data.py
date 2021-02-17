@@ -11,6 +11,8 @@ from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as
 from functools import reduce
 from pyspark.sql import DataFrame
 import subprocess
+from subprocess import Popen, PIPE
+import hdfs3
 
 INPUT_FILE = "airport-codes_csv.csv"
 OUTPUT_FILE = "fact_arrivals_by_state_month"
@@ -44,19 +46,56 @@ def get_files_hdfs(path):
     """ returns a list of fully qualified files for the gven path """
     # temp code to reduce total number of files we're reading
     file_list = []
-    #count = 0
-
     # have to use this as we can listdir on an hdfs volume
-    args = "hdfs dfs -ls "+path+" | awk '{print $8}'"
+    args = "hdfs dfs -ls -C {}".format(path)
     proc = subprocess.Popen(args, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, shell=True)
-    s_output, s_err = proc.communicate()
-    list_dir = s_output.split()
-    #! remove everything apart from first file
-    file_list = list_dir[0]
+                            stderr=subprocess.PIPE, shell=False)
 
-    logging.info("Files detected for loading: {}".format(file_list))
-    return file_list
+    s_output, s_err = proc.communicate()
+    # stores list of files and sub-directories in 'path'
+    list_dir = s_output.splitlines()
+    #! remove everything apart from first file just for tests
+    #file_list = list_dir[0]
+
+    logging.info("HDFS Files detected for loading: {}".format(file_list))
+    #list_dir = [path+"i94_apr16_sub.sas7bdat"]
+    return list_dir
+
+
+def get_files_hdfs_2(hdfs_path):
+
+    process = Popen(f'hdfs dfs -ls -C {hdfs_path}'.format,
+                    shell=True, stdout=PIPE, stderr=PIPE)
+    std_out, std_err = process.communicate()
+    list_of_file_names = [fn.split(' ')[-1].split('/')[-1]
+                          for fn in std_out.decode().readlines()[1:]][:-1]
+    list_of_file_names_with_full_address = [
+        fn.split(' ')[-1] for fn in std_out.decode().readlines()[1:]][:-1]
+
+    print(list_of_file_names)
+    return(list_of_file_names_with_full_address)
+
+
+def hdfs_ls(dirname):
+    """Returns list of HDFS directory entries."""
+    FAILED_TO_LIST_DIRECTORY_MSG = 'No such file or directory'
+
+    proc = Popen(['hdfs', 'dfs', '-ls', '-C', dirname],
+                 stdout=PIPE, stderr=PIPE)
+    (out, err) = proc.communicate()
+    # if out:
+    #     logging.debug('stdout:\n' + out)
+    # if proc.returncode != 0:
+    #     errmsg = 'Failed to list HDFS directory "' + \
+    #         dirname + '", return code ' + str(proc.returncode)
+    #     logging.error(errmsg)
+    #     logging.error(err)
+    #     if not FAILED_TO_LIST_DIRECTORY_MSG in err:
+    #         raise Exception(errmsg)
+    #     return []
+    # elif err:
+    #     logging.debug('stderr:\n' + err)
+    return out.splitlines()
 
 
 def append_datasets(*datasets):
@@ -77,7 +116,6 @@ def create_spark_session():
 
 def read_and_process_airport_data(spark, filename, df_dimension_state_table):
     """ Load the airport codes join with state dimension data to get airports with state_key"""
-
     logging.info("Reading airport data")
     # load the airport codes so we can map them to states
     airport_schema = R([
@@ -108,8 +146,8 @@ def read_and_process_airport_data(spark, filename, df_dimension_state_table):
 
 
 def read_i94_data(spark, filename):
-    logging.info("Reading i94 data:{}".format(filename))
     """ Load the i94 arrivee data from the sas data file """
+    logging.info("Reading i94 data:{}".format(filename))
     df_i94 = spark.read.format('com.github.saurfang.sas.spark').load(
         filename, inferInt=True)
 
@@ -123,8 +161,8 @@ def read_i94_data(spark, filename):
 
 
 def read_parquet_file(spark, filename):
-    logging.info("Reading parquet data:{}".format(filename))
     """ Read the named parquet file and return it as a dataframe """
+    logging.info("Reading parquet data:{}".format(filename))
     df_input = spark.read.parquet(filename)
     return df_input
 
@@ -198,7 +236,6 @@ def build_fact_table(df_fact_i94_age_gender_visa, df_fact_temperature_by_state_k
 
 def write_parquet(dataset, output_file):
     """ Output provided dataset to parquet file for use later """
-
     logging.info("writing fact table")
     dataset.write.parquet(output_file)
 
@@ -216,7 +253,8 @@ df_airport = read_and_process_airport_data(
     spark, HDFS_INPUT + '/' + INPUT_FILE, df_dimension_state_table)
 # get a list of all the datafiles in the i94 directory
 
-i94_datafile_list = get_files_hdfs(I94_PATH)
+i94_datafile_list = get_files_hdfs(
+    "hdfs:///user/hadoop/i94/18-83510-I94-Data-2016")
 # iterate over the list to create a list of data sets
 i94_total_data_set = map(
     lambda filename: read_i94_data(spark, filename), i94_datafile_list)
