@@ -37,7 +37,7 @@ class StageToRedshiftOperator(BaseOperator):
         credentials = aws_hook.get_credentials()
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
 
-        self.log.info("Truncating staging table:{}".format(self.table))
+        self.log.info("Truncating table:{}".format(self.table))
         redshift.run("TRUNCATE TABLE {}".format(self.table))
 
         self.log.info("Copying data from S3 into Redshift table")

@@ -29,7 +29,8 @@ def main():
     fact_table_arrivals = read_parquet_file(
         spark, 'fact_arrivals_by_state_month')
     # Create a list of all the fields in the fact table we want to check
-    column_name = ['state_key', 'month', 'average_age', 'average_temperature']
+    column_name = ['state_key', 'month', 'year',
+                   'average_age', 'average_temperature']
     # Now check each one has no nulls
     for item in column_name:
         if (null_checker(fact_table_arrivals, item)) > 0:
