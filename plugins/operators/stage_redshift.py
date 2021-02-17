@@ -28,7 +28,6 @@ class StageToRedshiftOperator(BaseOperator):
         self.table = table
         self.redshift_conn_id = redshift_conn_id
         self.s3_bucket = s3_bucket
-        # note that this will contain the key or a template parameter that we can render and expand to backfill daily
         self.s3_key = s3_key
         self.aws_credentials_id = aws_credentials_id
 
@@ -42,7 +41,7 @@ class StageToRedshiftOperator(BaseOperator):
 
         self.log.info("Copying data from S3 into Redshift table")
         rendered_key = self.s3_key.format(**context)
-        # rendered_key will contain the appropriate date so that we can backfill
+
         s3_path = "s3://{}{}".format(self.s3_bucket, rendered_key)
         formatted_sql = StageToRedshiftOperator.copy_sql.format(
             self.table,
