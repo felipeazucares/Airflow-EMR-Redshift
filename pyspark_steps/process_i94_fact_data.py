@@ -10,6 +10,7 @@ from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as
     IntegerType as Int, LongType as Lng, TimestampType as Tms, DateType as Dt, FloatType as Ft
 from functools import reduce
 from pyspark.sql import DataFrame
+import subprocess
 
 INPUT_FILE = "airport-codes_csv.csv"
 OUTPUT_FILE = "fact_arrivals_by_state_month"
@@ -35,6 +36,25 @@ def get_files(path):
             # ! end of temp
             if isfile(join(path, item)):
                 file_list.append(join(path, item))
+    logging.info("Files detected for loading: {}".format(file_list))
+    return file_list
+
+
+def get_files_hdfs(path):
+    """ returns a list of fully qualified files for the gven path """
+    # temp code to reduce total number of files we're reading
+    file_list = []
+    #count = 0
+
+    # have to use this as we can listdir on an hdfs volume
+    args = "hdfs dfs -ls "+path+" | awk '{print $8}'"
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, shell=True)
+    s_output, s_err = proc.communicate()
+    list_dir = s_output.split()
+    #! remove everything apart from first file
+    file_list = list_dir[0]
+
     logging.info("Files detected for loading: {}".format(file_list))
     return file_list
 
@@ -195,7 +215,8 @@ df_dimension_state_table = read_parquet_file(
 df_airport = read_and_process_airport_data(
     spark, HDFS_INPUT + '/' + INPUT_FILE, df_dimension_state_table)
 # get a list of all the datafiles in the i94 directory
-i94_datafile_list = get_files(I94_PATH)
+
+i94_datafile_list = get_files_hdfs(I94_PATH)
 # iterate over the list to create a list of data sets
 i94_total_data_set = map(
     lambda filename: read_i94_data(spark, filename), i94_datafile_list)
