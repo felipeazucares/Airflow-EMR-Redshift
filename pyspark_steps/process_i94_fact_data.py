@@ -29,23 +29,25 @@ def get_files(path):
     file_list = []
     count = 0
     for item in listdir(path):
-        # ! temp code to limit number of files to 2 for test purposes
+        # ! temp code to limit number of files to 1 for inital test purposes
         count = count + 1
-        if count < 3:
+        if count < 2:
             # ! end of temp
             if isfile(join(path, item)):
                 file_list.append(join(path, item))
-    print(file_list)
+    logging.info("Files detected for loading: {}".format(file_list))
     return file_list
 
 
 def append_datasets(*datasets):
     """ performs a union operation on the provided datasets """
+    logging.info("Running union on datasets")
     return reduce(DataFrame.unionAll, datasets)
 
 
 def create_spark_session():
     """ Create spark session and return """
+    logging.info("Creating spark session")
     spark = (SparkSession.builder.
              enableHiveSupport().getOrCreate())
     return spark
@@ -56,6 +58,7 @@ def create_spark_session():
 def read_and_process_airport_data(spark, filename, df_dimension_state_table):
     """ Load the airport codes join with state dimension data to get airports with state_key"""
 
+    logging.info("Reading airport data")
     # load the airport codes so we can map them to states
     airport_schema = R([
         Fld("ident", Str()),
@@ -85,6 +88,7 @@ def read_and_process_airport_data(spark, filename, df_dimension_state_table):
 
 
 def read_i94_data(spark, filename):
+    logging.info("Reading i94 data:{}".format(filename))
     """ Load the i94 arrivee data from the sas data file """
     df_i94 = spark.read.format('com.github.saurfang.sas.spark').load(
         filename, inferInt=True)
@@ -99,6 +103,7 @@ def read_i94_data(spark, filename):
 
 
 def read_parquet_file(spark, filename):
+    logging.info("Reading parquet data:{}".format(filename))
     """ Read the named parquet file and return it as a dataframe """
     df_input = spark.read.parquet(filename)
     return df_input
@@ -106,6 +111,7 @@ def read_parquet_file(spark, filename):
 
 def join_and_agg_i94(df_i94, df_airport):
     """ Join the i94 data to the airport codes to get the state for each port & aggregate facts by state and month """
+    logging.info("Joining airport and i94 data")
 
     # First join the i94 raw data to the airport table to provide us with a valid state for each arrivee
     df_i94_by_state = df_i94.join(df_airport, df_i94.airport_key == df_airport.local_code, "inner") \
@@ -158,6 +164,8 @@ def build_fact_table(df_fact_i94_age_gender_visa, df_fact_temperature_by_state_k
     """ Final join between temperature data by state and arrivals facts by state to build fact table """
     # Now we can join this with the temperature data in the temp fact table
     # join on state address and month
+
+    logging.info("Building the fact table")
     df_fact_arrivals_table = df_fact_i94_age_gender_visa \
         .join(df_fact_temperature_by_state_key, (df_fact_i94_age_gender_visa.month == df_fact_temperature_by_state_key.month) & (df_fact_i94_age_gender_visa.state_key == df_fact_temperature_by_state_key.state_key), "inner") \
         .drop(df_fact_temperature_by_state_key.state_key) \
@@ -170,6 +178,8 @@ def build_fact_table(df_fact_i94_age_gender_visa, df_fact_temperature_by_state_k
 
 def write_parquet(dataset, output_file):
     """ Output provided dataset to parquet file for use later """
+
+    logging.info("writing fact table")
     dataset.write.parquet(output_file)
 
 
