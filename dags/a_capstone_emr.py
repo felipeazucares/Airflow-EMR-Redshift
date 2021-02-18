@@ -24,9 +24,9 @@ S3_ANALYTICS_BUCKET = "analytics/"
 S3_SCRIPT = "process_i94.py"
 S3_SCRIPT_BUCKET = "pyspark_steps"
 DIMENSION_STATE_KEY = "dimension_state"
-FACT_ARRIVALS_KEY = "fact_arrivals"
+FACT_ARRIVALS_TABLE = "fact_arrivals"
 DIMENSION_STATE_TABLE = "dimension_state"
-FACT_ARRIVALS_TABLE = "fact_arrivals_by_state_month"
+FACT_ARRIVALS_KEY = "fact_arrivals_by_state_month"
 
 
 # define the EMR instance details
