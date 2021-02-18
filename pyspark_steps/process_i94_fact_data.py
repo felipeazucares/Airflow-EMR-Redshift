@@ -6,11 +6,11 @@ import logging
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, \
-    IntegerType as Int, LongType as Lng, TimestampType as Tms, DateType as Dt, FloatType as Ft
+    IntegerType as Int
 from functools import reduce
 from pyspark.sql import DataFrame
 import subprocess
-from subprocess import Popen, PIPE
+from subprocess import PIPE
 
 INPUT_FILE = "airport-codes_csv.csv"
 OUTPUT_FILE = "fact_arrivals_by_state_month"
@@ -104,7 +104,8 @@ def read_i94_data(spark, filename):
 
     # keep just month, age, gender, airport, and visa_code
     df_i94 = df_i94.select(df_i94.i94mon.alias("month"), df_i94.i94yr.alias("year"), df_i94.i94bir.alias("age"),
-                           df_i94.gender.alias("gender"), df_i94.i94port.alias("airport_key"),
+                           df_i94.gender.alias(
+                               "gender"), df_i94.i94port.alias("airport_key"),
                            df_i94.i94visa.alias("visa_key")) \
         .withColumn("month", F.col("month").cast("Integer")) \
         .withColumn("year", F.col("year").cast("Integer")) \
@@ -153,7 +154,7 @@ def join_and_agg_i94(df_i94, df_airport):
     # Join the age dataframe with gender counts
     df_i94_fact_age_gender = df_i94_fact_age \
         .join(df_i94_fact_gender, (df_i94_fact_age.month == df_i94_fact_gender.month) & (
-                df_i94_fact_age.state_key == df_i94_fact_gender.state_key), "inner") \
+            df_i94_fact_age.state_key == df_i94_fact_gender.state_key), "inner") \
         .drop(df_i94_fact_gender.month) \
         .drop(df_i94_fact_gender.year) \
         .drop(df_i94_fact_gender.state_key)
@@ -161,7 +162,7 @@ def join_and_agg_i94(df_i94, df_airport):
     # and now join that to the visa type counts
     df_i94_fact_age_gender_visa = df_i94_fact_age_gender \
         .join(df_i94_fact_visa, (df_i94_fact_age_gender.month == df_i94_fact_visa.month) & (
-                df_i94_fact_age_gender.state_key == df_i94_fact_visa.state_key), "inner") \
+            df_i94_fact_age_gender.state_key == df_i94_fact_visa.state_key), "inner") \
         .drop(df_i94_fact_visa.month) \
         .drop(df_i94_fact_visa.state_key) \
         .drop(df_i94_fact_visa.year) \
