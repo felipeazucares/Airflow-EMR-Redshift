@@ -5,7 +5,7 @@
 import logging
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, \
+from pyspark.sql.types import StructType as R, StructField as Fld,  StringType as Str, \
     IntegerType as Int
 from functools import reduce
 from pyspark.sql import DataFrame
@@ -86,7 +86,7 @@ def read_and_process_airport_data(spark, filename, df_dimension_state_table):
     df_airport = spark.read.options(Header=True, Delimter=",").csv(
         filename, airport_schema)
 
-    # only want the airports in the US & that map to the states
+    # cleanse: we only want the airports in the US which map to the states that we have in the states table
 
     df_airport = df_airport.filter(df_airport.iso_country == "US") \
         .join(df_dimension_state_table, F.substring(df_airport.iso_region, 4, 2) == df_dimension_state_table.state_key,
@@ -149,12 +149,13 @@ def join_and_agg_i94(df_i94, df_airport):
     df_i94_fact_age = df_i94_cleansed.groupBy("state_key", "month", "year").avg("age") \
         .select(df_i94_cleansed.state_key, df_i94_cleansed.month, df_i94_cleansed.year,
                 F.round(F.col("avg(age)"), 1).alias("average_age")) \
-        .sort("state_key", "month")
+        .sort("state_key", "year", "month")
 
     # Join the age dataframe with gender counts
     df_i94_fact_age_gender = df_i94_fact_age \
         .join(df_i94_fact_gender, (df_i94_fact_age.month == df_i94_fact_gender.month) & (
-            df_i94_fact_age.state_key == df_i94_fact_gender.state_key), "inner") \
+            df_i94_fact_age.state_key == df_i94_fact_gender.state_key) & (
+            df_i94_fact_age.year == df_i94_fact_gender.year), "inner") \
         .drop(df_i94_fact_gender.month) \
         .drop(df_i94_fact_gender.year) \
         .drop(df_i94_fact_gender.state_key)
@@ -162,7 +163,8 @@ def join_and_agg_i94(df_i94, df_airport):
     # and now join that to the visa type counts
     df_i94_fact_age_gender_visa = df_i94_fact_age_gender \
         .join(df_i94_fact_visa, (df_i94_fact_age_gender.month == df_i94_fact_visa.month) & (
-            df_i94_fact_age_gender.state_key == df_i94_fact_visa.state_key), "inner") \
+            df_i94_fact_age_gender.state_key == df_i94_fact_visa.state_key) & (
+            df_i94_fact_age_gender.year == df_i94_fact_visa.year), "inner") \
         .drop(df_i94_fact_visa.month) \
         .drop(df_i94_fact_visa.state_key) \
         .drop(df_i94_fact_visa.year) \
@@ -223,7 +225,6 @@ df_dimension_state_table = read_parquet_file(
 df_airport = read_and_process_airport_data(
     spark, HDFS_INPUT + '/' + INPUT_FILE, df_dimension_state_table)
 # get a list of all the datafiles in the i94 directory
-
 i94_datafile_list = get_files_hdfs(I94_PATH)
 # iterate over the list to create a list of data sets
 i94_total_data_set = map(

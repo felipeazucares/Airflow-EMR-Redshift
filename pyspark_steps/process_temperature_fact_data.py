@@ -55,13 +55,13 @@ def prepare_temperature_by_state(df_temperature_by_state):
     """ Extract month and year columns for date information """
     # add in month & year to dataset
     logging.info("Prep temperature data")
-    df_temperature_by_state = df_temperature_by_state.select(
+    df_selected_temperature_by_state = df_temperature_by_state.select(
         "dt", "AverageTemperature", "State", "Country")
-    df_temperature_by_state = df_temperature_by_state.withColumn(
+    df_selected_temperature_by_state_year = df_selected_temperature_by_state.withColumn(
         'Year', year(df_temperature_by_state.dt))
-    df_temperature_by_state = df_temperature_by_state.withColumn(
+    df_prepped_temperature_by_state = df_selected_temperature_by_state_year.withColumn(
         'Month', month(df_temperature_by_state.dt))
-    return df_temperature_by_state
+    return df_prepped_temperature_by_state
 
 
 def generate_missing_temperature_by_state(df_temperature_by_state):
@@ -69,8 +69,8 @@ def generate_missing_temperature_by_state(df_temperature_by_state):
 
     # Generate data for the missing three months of the year 2013 as we only have data from Jan-Sept
     # To do this we'll average Oct-Dec for 2010-2012
-    # First extract the months and yeasr we want from the temperature data
-    logging.info("Generatng missing temperature data")
+    # First extract the months and year we want from the temperature data
+    logging.info("Generating missing temperature data")
     df_temp_to_average = df_temperature_by_state.filter((df_temperature_by_state["Country"] == "United States") &
                                                         ((df_temperature_by_state["Year"] == 2010) | (
                                                             df_temperature_by_state["Year"] == 2011) |
@@ -79,7 +79,7 @@ def generate_missing_temperature_by_state(df_temperature_by_state):
         (df_temperature_by_state["Month"] == 11) |
         (df_temperature_by_state["Month"] == 12)))
 
-    # Average out the temperatures over the last three years
+    # Average out the temperatures over the last three years to give a single reading for months 10-12
     df_temp_to_average = df_temp_to_average.groupBy(
         "State", "Month").avg("AverageTemperature")
 
@@ -89,7 +89,7 @@ def generate_missing_temperature_by_state(df_temperature_by_state):
         .select("State", "avg(AverageTemperature)", "Month", "Year") \
         .withColumnRenamed("avg(AverageTemperature)", "AverageTemperature")
 
-    # Filter out the items for 2013 and just keep the columns we want
+    # Now with the original dataset, keep the items for 2013 and columns we want
     df_temperature = df_temperature_by_state \
         .select(F.col("State").alias("state_name"), F.col("AverageTemperature").alias("average_temperature"),
                 F.col("Month").alias("month"), F.col("Year").alias("year")) \

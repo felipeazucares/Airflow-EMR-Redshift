@@ -182,6 +182,7 @@ dag = DAG("a_capstone_emr",
 
 start_operator = DummyOperator(task_id="Begin_execution",  dag=dag)
 
+# Empty the bucket we write the intermediate parquet files before anything else
 bucket_name = BUCKET_NAME + '/' + S3_ANALYTICS_BUCKET
 empty_bucket = BashOperator(
     task_id='empty_bucket',

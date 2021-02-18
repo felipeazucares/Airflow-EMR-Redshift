@@ -4,6 +4,10 @@ from pyspark.sql import functions as F
 import logging
 
 
+HDFS_OUTPUT = "hdfs:///user/hadoop/analytics"
+INPUT_FILE = "fact_arrivals_by_state_month"
+
+
 def read_parquet_file(spark, filename):
     """ Read the named parquet file and return it as a dataframe """
     logging.info("Reading parquet data:{}".format(filename))
@@ -31,7 +35,7 @@ def main():
     spark = create_spark_session()
     # Read the fact table
     fact_table_arrivals = read_parquet_file(
-        spark, 'fact_arrivals_by_state_month')
+        spark, HDFS_OUTPUT + '/' + INPUT_FILE)
     # Create a list of all the fields in the fact table we want to check
     column_name = ['state_key', 'month', 'year',
                    'average_age', 'average_temperature']

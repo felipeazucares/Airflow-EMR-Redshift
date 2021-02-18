@@ -83,8 +83,6 @@ def write_parquet(dataset, output_file):
     """ output provided dataset to parquet file for use later """
     # write the non variant dimension data out to a parquet file - state dimension table
     logging.info("writing output: {}".format(output_file))
-    # the demographic data has 4 entires per city based on ethnic breakdown - we only want the city->state
-    # relationships so select distinct cities
     dataset.write.parquet(output_file)
 
 
