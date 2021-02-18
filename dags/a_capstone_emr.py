@@ -19,15 +19,16 @@ from helpers import SqlQueries
 
 # configuration information
 BUCKET_NAME = "capstone-suggars"
-s3_data_bucket = "data2/"
-s3_analytics_bucket = "analytics/"
-s3_script = "process_i94.py"
-s3_script_bucket = "pyspark_steps"
+S3_DATA_BUCKET = "data2/"
+S3_ANALYTICS_BUCKET = "analytics/"
+S3_SCRIPT = "process_i94.py"
+S3_SCRIPT_BUCKET = "pyspark_steps"
 
 
 # define the EMR instance details
 
-# Boto3 job flow parameters see https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/emr.html#EMR.Client.run_job_flow
+# Boto3 job flow parameters see https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/emr.html
+# EMR.Client.run_job_flow
 JOB_FLOW_OVERRIDES = {
     "Name": "i94_capstone",
     "ReleaseLabel": "emr-5.29.0",
@@ -61,7 +62,8 @@ JOB_FLOW_OVERRIDES = {
                 "InstanceCount": 2,
             },
         ],
-        # if we add a key in then we can ssh to this instance post launch - this is the name of the EC2 key in the EC2 dashboard>>key pair
+        # if we add a key in then we can ssh to this instance post launch - this is the name of the EC2 key in the
+        # EC2 dashboard>>key pair
         "Ec2KeyName": "EMR_KEY",
         "KeepJobFlowAliveWhenNoSteps": True,
         "TerminationProtected": False,
@@ -81,7 +83,7 @@ SPARK_STEPS = [
             "Jar": "command-runner.jar",
             "Args": [
                 "s3-dist-cp",
-                "--src=s3a://{{ params.BUCKET_NAME }}/{{ params.s3_data }}",
+                "--src=s3a://{{ params.bucket_name }}/{{ params.s3_data }}",
                 "--dest=hdfs:///user/hadoop/i94",
             ],
         },
@@ -95,7 +97,7 @@ SPARK_STEPS = [
                 "spark-submit",
                 "--deploy-mode",
                 "client",
-                "s3a://{{params.BUCKET_NAME}}/{{params.s3_script_bucket}}/process_state_dimension_data.py",
+                "s3a://{{params.bucket_name}}/{{params.s3_script_bucket}}/process_state_dimension_data.py",
             ],
         },
     },
@@ -108,7 +110,7 @@ SPARK_STEPS = [
                 "spark-submit",
                 "--deploy-mode",
                 "client",
-                "s3a://{{ params.BUCKET_NAME }}/{{ params.s3_script_bucket }}/process_temperature_fact_data.py",
+                "s3a://{{ params.bucket_name }}/{{ params.s3_script_bucket }}/process_temperature_fact_data.py",
             ],
         },
     },
@@ -123,7 +125,7 @@ SPARK_STEPS = [
                 "client",
                 "--packages",
                 "saurfang:spark-sas7bdat:2.0.0-s_2.10",
-                "s3a://{{ params.BUCKET_NAME }}/{{ params.s3_script_bucket }}/process_i94_fact_data.py",
+                "s3a://{{ params.bucket_name }}/{{ params.s3_script_bucket }}/process_i94_fact_data.py",
 
             ],
         },
@@ -137,7 +139,7 @@ SPARK_STEPS = [
                 "spark-submit",
                 "--deploy-mode",
                 "client",
-                "s3a://{{ params.BUCKET_NAME }}/{{ params.s3_script_bucket }}/data_quality_checks.py",
+                "s3a://{{ params.bucket_name }}/{{ params.s3_script_bucket }}/data_quality_checks.py",
 
             ],
         },
@@ -150,7 +152,7 @@ SPARK_STEPS = [
             "Args": [
                 "s3-dist-cp",
                 "--src=hdfs:///user/hadoop/analytics",
-                "--dest=s3a://{{ params.BUCKET_NAME }}/{{ params.s3_output }}",
+                "--dest=s3a://{{ params.bucket_name }}/{{ params.s3_output }}",
             ],
         },
     },
@@ -176,7 +178,7 @@ dag = DAG("a_capstone_emr",
 
 start_operator = DummyOperator(task_id="Begin_execution",  dag=dag)
 
-bucket_name = BUCKET_NAME + '/' + s3_analytics_bucket
+bucket_name = BUCKET_NAME + '/' + S3_ANALYTICS_BUCKET
 empty_bucket = BashOperator(
     task_id='empty_bucket',
     bash_command='aws s3 rm s3://{} --recursive'.format(
@@ -199,11 +201,11 @@ step_adder = EmrAddStepsOperator(
     job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
     aws_conn_id="aws_default",
     steps=SPARK_STEPS,
-    params={  # these params are used to fill the paramterized values in SPARK_STEPS json
-        "BUCKET_NAME": BUCKET_NAME,
-        "s3_data": s3_data_bucket,
-        "s3_script_bucket": s3_script_bucket,
-        "s3_output": s3_analytics_bucket,
+    params={  # these params are used to fill the parameterized values in SPARK_STEPS json
+        "bucket_name": BUCKET_NAME,
+        "s3_data": S3_DATA_BUCKET,
+        "s3_script_bucket": S3_SCRIPT_BUCKET,
+        "s3_output": S3_ANALYTICS_BUCKET,
     },
     dag=dag,
 )
@@ -250,7 +252,7 @@ populate_dimension_table = StageToRedshiftOperator(
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     table="dimension_state",
-    s3_bucket=BUCKET_NAME+'/'+s3_analytics_bucket,
+    s3_bucket=BUCKET_NAME+'/'+S3_ANALYTICS_BUCKET,
     s3_key="dim_state",
     context=True
 )
@@ -260,7 +262,7 @@ populate_fact_table = StageToRedshiftOperator(
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     table="fact_arrivals",
-    s3_bucket=BUCKET_NAME+'/'+s3_analytics_bucket,
+    s3_bucket=BUCKET_NAME+'/'+S3_ANALYTICS_BUCKET,
     s3_key="fact_arrivals_by_state_month",
     context=True
 )
@@ -271,6 +273,3 @@ start_operator >> empty_bucket >> create_emr_instance >> step_adder
 step_adder >> step_checker >> shutdown_emr_cluster
 shutdown_emr_cluster >> create_dimension_table >> create_fact_table >> populate_dimension_table
 populate_dimension_table >> populate_fact_table >> end_operator
-
-# start_operator >> create_dimension_table >> create_fact_table >> populate_dimension_table
-# populate_dimension_table >> populate_fact_table >> end_operator

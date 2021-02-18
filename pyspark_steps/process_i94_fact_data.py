@@ -1,6 +1,6 @@
-# Takes the GlobalLandTemperaturesByState.csv data file, generates months dtaa for missing months and stores it as a parquet file
-# Philip Suggars
-# February 202
+# Takes the GlobalLandTemperaturesByState.csv data file,
+# generates months data for missing months and stores it as a
+# parquet file Philip Suggars February 2021
 
 import logging
 from pyspark.sql import SparkSession
@@ -12,7 +12,6 @@ from pyspark.sql import DataFrame
 import subprocess
 from subprocess import Popen, PIPE
 
-
 INPUT_FILE = "airport-codes_csv.csv"
 OUTPUT_FILE = "fact_arrivals_by_state_month"
 HDFS_INPUT = "hdfs:///user/hadoop/i94"
@@ -20,13 +19,12 @@ HDFS_OUTPUT = "hdfs:///user/hadoop/analytics"
 TEMPERATURE_FILE = "fact_temperature_state"
 STATE_FILE = "dimension_state"
 I94_PATH = HDFS_INPUT + "/18-83510-I94-Data-2016/"
-# I94_FILE = "18-83510-I94-Data-2016/i94_apr16_sub.sas7bdat"
 
 # Helper functions
 
 
 def get_files_hdfs(path):
-    """ returns a list of fully qualified files for the gven path """
+    """ returns a list of fully qualified files for the given path """
 
     file_list = []
 
@@ -41,7 +39,7 @@ def get_files_hdfs(path):
         print("Detected the following files:{}".format(file_list))
 
         logging.info("HDFS Files detected for loading: {}".format(file_list))
-    except:
+    except Exception as ex:
         print("An exception occurred attempting to access the HFDS file system.")
         print("Command was:{}".format(args))
 
@@ -61,6 +59,7 @@ def create_spark_session():
              config("spark.jars.packages", "saurfang:spark-sas7bdat:2.0.0-s_2.11,org.apache.hadoop:hadoop-aws:2.7.2").
              enableHiveSupport().getOrCreate())
     return spark
+
 
 # Processing functions
 
@@ -90,7 +89,8 @@ def read_and_process_airport_data(spark, filename, df_dimension_state_table):
     # only want the airports in the US & that map to the states
 
     df_airport = df_airport.filter(df_airport.iso_country == "US") \
-        .join(df_dimension_state_table, F.substring(df_airport.iso_region, 4, 2) == df_dimension_state_table.state_key, "inner") \
+        .join(df_dimension_state_table, F.substring(df_airport.iso_region, 4, 2) == df_dimension_state_table.state_key,
+              "inner") \
         .select(df_airport.ident, df_airport.local_code, df_dimension_state_table.state_key)
 
     return df_airport
@@ -103,7 +103,9 @@ def read_i94_data(spark, filename):
         filename, inferInt=True)
 
     # keep just month, age, gender, airport, and visa_code
-    df_i94 = df_i94.select(df_i94.i94mon.alias("month"), df_i94.i94yr.alias("year"), df_i94.i94bir.alias("age"), df_i94.gender.alias("gender"), df_i94.i94port.alias("airport_key"), df_i94.i94visa.alias("visa_key")) \
+    df_i94 = df_i94.select(df_i94.i94mon.alias("month"), df_i94.i94yr.alias("year"), df_i94.i94bir.alias("age"),
+                           df_i94.gender.alias("gender"), df_i94.i94port.alias("airport_key"),
+                           df_i94.i94visa.alias("visa_key")) \
         .withColumn("month", F.col("month").cast("Integer")) \
         .withColumn("year", F.col("year").cast("Integer")) \
         .sort("month", "year", "airport_key")
@@ -128,32 +130,38 @@ def join_and_agg_i94(df_i94, df_airport):
         .sort("month", "state_key")
 
     # Now clean up the result and remove any nulls in the fact columns we're interested in
-    df_i94_cleansed = df_i94_by_state.filter((df_i94_by_state.age.isNotNull()) & (df_i94_by_state.month.isNotNull()) & (
-        df_i94_by_state.gender.isNotNull()) & (df_i94_by_state.visa_key.isNotNull()) & (df_i94_by_state.year.isNotNull()))
+    df_i94_cleansed = df_i94_by_state.filter((df_i94_by_state.age.isNotNull()) &
+                                             (df_i94_by_state.month.isNotNull()) &
+                                             (df_i94_by_state.gender.isNotNull()) &
+                                             (df_i94_by_state.visa_key.isNotNull()) &
+                                             (df_i94_by_state.year.isNotNull()))
 
     # Pivot the result to aggregate count values to get counts for genders by state and month
-    df_i94_fact_gender = df_i94_cleansed.groupBy("state_key", "month", "year").pivot("gender").count()\
+    df_i94_fact_gender = df_i94_cleansed.groupBy("state_key", "month", "year").pivot("gender").count() \
         .sort("state_key", "year", "month")
 
     # Do the same for visas
-    df_i94_fact_visa = df_i94_cleansed.groupBy("state_key", "month", "year").pivot("visa_key").count()\
+    df_i94_fact_visa = df_i94_cleansed.groupBy("state_key", "month", "year").pivot("visa_key").count() \
         .sort("state_key", "year", "month")
 
     # Agg to get the average age per month and state, rename column and round to 2.dp
     df_i94_fact_age = df_i94_cleansed.groupBy("state_key", "month", "year").avg("age") \
-        .select(df_i94_cleansed.state_key, df_i94_cleansed.month, df_i94_cleansed.year, F.round(F.col("avg(age)"), 1).alias("average_age")) \
+        .select(df_i94_cleansed.state_key, df_i94_cleansed.month, df_i94_cleansed.year,
+                F.round(F.col("avg(age)"), 1).alias("average_age")) \
         .sort("state_key", "month")
 
     # Join the age dataframe with gender counts
     df_i94_fact_age_gender = df_i94_fact_age \
-        .join(df_i94_fact_gender, (df_i94_fact_age.month == df_i94_fact_gender.month) & (df_i94_fact_age.state_key == df_i94_fact_gender.state_key), "inner") \
+        .join(df_i94_fact_gender, (df_i94_fact_age.month == df_i94_fact_gender.month) & (
+                df_i94_fact_age.state_key == df_i94_fact_gender.state_key), "inner") \
         .drop(df_i94_fact_gender.month) \
         .drop(df_i94_fact_gender.year) \
         .drop(df_i94_fact_gender.state_key)
 
     # and now join that to the visa type counts
     df_i94_fact_age_gender_visa = df_i94_fact_age_gender \
-        .join(df_i94_fact_visa, (df_i94_fact_age_gender.month == df_i94_fact_visa.month) & (df_i94_fact_age_gender.state_key == df_i94_fact_visa.state_key), "inner") \
+        .join(df_i94_fact_visa, (df_i94_fact_age_gender.month == df_i94_fact_visa.month) & (
+                df_i94_fact_age_gender.state_key == df_i94_fact_visa.state_key), "inner") \
         .drop(df_i94_fact_visa.month) \
         .drop(df_i94_fact_visa.state_key) \
         .drop(df_i94_fact_visa.year) \
@@ -163,8 +171,17 @@ def join_and_agg_i94(df_i94, df_airport):
         .sort(df_i94_fact_age_gender.state_key, df_i94_fact_age_gender.month, df_i94_fact_age_gender.year)
 
     # select and reorder the columns that we want
-    df_fact_i94_age_gender_visa = df_i94_fact_age_gender_visa.select(df_i94_fact_age_gender_visa.state_key, df_i94_fact_age_gender_visa.month, df_i94_fact_age_gender_visa.year, df_i94_fact_age_gender_visa.average_age, df_i94_fact_age_gender_visa.F,
-                                                                     df_i94_fact_age_gender_visa.M, df_i94_fact_age_gender_visa.U, df_i94_fact_age_gender_visa.X, df_i94_fact_age_gender_visa.business, df_i94_fact_age_gender_visa.pleasure, df_i94_fact_age_gender_visa.student)
+    df_fact_i94_age_gender_visa = df_i94_fact_age_gender_visa.select(df_i94_fact_age_gender_visa.state_key,
+                                                                     df_i94_fact_age_gender_visa.month,
+                                                                     df_i94_fact_age_gender_visa.year,
+                                                                     df_i94_fact_age_gender_visa.average_age,
+                                                                     df_i94_fact_age_gender_visa.F,
+                                                                     df_i94_fact_age_gender_visa.M,
+                                                                     df_i94_fact_age_gender_visa.U,
+                                                                     df_i94_fact_age_gender_visa.X,
+                                                                     df_i94_fact_age_gender_visa.business,
+                                                                     df_i94_fact_age_gender_visa.pleasure,
+                                                                     df_i94_fact_age_gender_visa.student)
 
     return df_fact_i94_age_gender_visa
 
@@ -176,7 +193,9 @@ def build_fact_table(df_fact_i94_age_gender_visa, df_fact_temperature_by_state_k
 
     logging.info("Building the fact table")
     df_fact_arrivals_table = df_fact_i94_age_gender_visa \
-        .join(df_fact_temperature_by_state_key, (df_fact_i94_age_gender_visa.month == df_fact_temperature_by_state_key.month) & (df_fact_i94_age_gender_visa.state_key == df_fact_temperature_by_state_key.state_key), "inner") \
+        .join(df_fact_temperature_by_state_key,
+              (df_fact_i94_age_gender_visa.month == df_fact_temperature_by_state_key.month) &
+              (df_fact_i94_age_gender_visa.state_key == df_fact_temperature_by_state_key.state_key), "inner") \
         .drop(df_fact_temperature_by_state_key.state_key) \
         .drop(df_fact_temperature_by_state_key.month)
 
@@ -208,7 +227,7 @@ i94_datafile_list = get_files_hdfs(I94_PATH)
 # iterate over the list to create a list of data sets
 i94_total_data_set = map(
     lambda filename: read_i94_data(spark, filename), i94_datafile_list)
-# union them all toegther so we can work with them
+# union them all together so we can work with them
 df_i94 = append_datasets(*i94_total_data_set)
 
 # Join the i94 data to the airport codes on local_code to give each arrivee a state_key

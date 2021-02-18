@@ -1,4 +1,5 @@
-# Takes the GlobalLandTemperaturesByState.csv data file, generates months dtaa for missing months and stores it as a parquet file
+# Takes the GlobalLandTemperaturesByState.csv data file,
+# generates months dtaa for missing months and stores it as a parquet file
 # Philip Suggars
 # February 202
 from pyspark.sql import SparkSession
@@ -9,24 +10,26 @@ from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as
 from functools import reduce
 from pyspark.sql import DataFrame
 import logging
+
 INPUT_FILE = "GlobalLandTemperaturesByState.csv"
 OUTPUT_FILE = "fact_temperature_state"
 HDFS_INPUT = "hdfs:///user/hadoop/i94"
 HDFS_OUTPUT = "hdfs:///user/hadoop/analytics"
 STATE_FILE = "dimension_state"
 
+
 # helper functions
 
 
-def unionAll(*dfs):
-    return reduce(DataFrame.unionAll, dfs)
+def append_datasets(*datasets):
+    return reduce(DataFrame.unionAll, datasets)
 
 
 def create_spark_session():
     """ Create spark session and return """
     logging.info("Creating spark session")
     spark = (SparkSession.builder.
-             config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.2").
+             config("spark.jars.packages").
              enableHiveSupport().getOrCreate())
     return spark
 
@@ -69,8 +72,13 @@ def generate_missing_temperature_by_state(df_temperature_by_state):
     # To do this we'll average Oct-Dec for 2010-2012
     # First extract the months and yeasr we want from the temperature data
     logging.info("Generatng missing temperature data")
-    df_temp_to_average = df_temperature_by_state.filter((df_temperature_by_state["Country"] == "United States") & ((df_temperature_by_state["Year"] == 2010) | (df_temperature_by_state["Year"] == 2011) | (
-        df_temperature_by_state["Year"] == 2012)) & ((df_temperature_by_state["Month"] == 10) | (df_temperature_by_state["Month"] == 11) | (df_temperature_by_state["Month"] == 12)))
+    df_temp_to_average = df_temperature_by_state.filter((df_temperature_by_state["Country"] == "United States") &
+                                                        ((df_temperature_by_state["Year"] == 2010) | (
+                                                                    df_temperature_by_state["Year"] == 2011) |
+                                                         (df_temperature_by_state["Year"] == 2012)) & (
+                                                                    (df_temperature_by_state["Month"] == 10) |
+                                                                    (df_temperature_by_state["Month"] == 11) |
+                                                                    (df_temperature_by_state["Month"] == 12)))
 
     # Average out the temperatures over the last three years
     df_temp_to_average = df_temp_to_average.groupBy(
@@ -84,20 +92,23 @@ def generate_missing_temperature_by_state(df_temperature_by_state):
 
     # Filter out the items for 2013 and just keep the columns we want
     df_temperature = df_temperature_by_state \
-        .select(F.col("State").alias("state_name"), F.col("AverageTemperature").alias("average_temperature"), F.col("Month").alias("month"), F.col("Year").alias("year")) \
+        .select(F.col("State").alias("state_name"), F.col("AverageTemperature").alias("average_temperature"),
+                F.col("Month").alias("month"), F.col("Year").alias("year")) \
         .filter((df_temperature_by_state["year"] == 2013) & (df_temperature_by_state["Country"] == "United States"))
 
     # Now union the two dataframes together and sort by city and month (year is the same across the dataset - 2013)
-    df_fact_temperature_by_state_name = unionAll(df_temperature, df_temp_to_average) \
+    df_fact_temperature_by_state_name = append_datasets(df_temperature, df_temp_to_average) \
         .sort("state_name", "month")
     return df_fact_temperature_by_state_name
 
 
 def get_state_key_for_temperature_data(df_fact_temperature_by_state_name, df_dimension_state_table):
-    """ Join the temperature data to the state dimension table to get the state_key which is not included in the temperature data """
-    logging.info("Generatng state_key for temperature data")
+    """ Join the temperature data to the state dimension table to get the state_key which is not included in the
+    temperature data """
+    logging.info("Generating state_key for temperature data")
     df_fact_temperature_by_state_key = df_fact_temperature_by_state_name \
-        .join(df_dimension_state_table, df_fact_temperature_by_state_name.state_name == df_dimension_state_table.state_name, "inner") \
+        .join(df_dimension_state_table,
+              df_fact_temperature_by_state_name.state_name == df_dimension_state_table.state_name, "inner") \
         .select("state_key", F.round("average_temperature", 2).alias("average_temperature"), "month")
     return df_fact_temperature_by_state_key
 

@@ -52,7 +52,8 @@ def read_city_demographic_data(spark, filename):
 def aggregate_city_demographc_data(df_demographic):
     """ take city demographic data and aggregate up to state level - return aggregate state aggregate dataframe """
     logging.info("Aggregating demographic")
-    # the demographic data has 4 entires per city based on ethnic breakdown - we only want the city->state relationships so select distinct cities
+    # the demographic data has 4 entires per city based on ethnic breakdown - we only want the city->state
+    # relationships so select distinct cities
     df_demographic = df_demographic.dropDuplicates(["City"])
 
     # Now we need to calcuate the average details by state  in each state
@@ -67,7 +68,9 @@ def aggregate_city_demographc_data(df_demographic):
 
     # create dimension table for non time variant values
     df_dimension_state_table = df_demo_by_state \
-        .select(F.col("state_code").alias("state_key"), "state_name", "average_age", "female_urban_population", "male_urban_population", "total_urban_population") \
+        .select(F.col("state_code") \
+        .alias("state_key"), "state_name", "average_age", "female_urban_population", "male_urban_population",
+                "total_urban_population") \
         .dropDuplicates(["state_key"]) \
         .sort("state_key")
 
@@ -80,7 +83,8 @@ def write_parquet(dataset, output_file):
     """ output provided dataset to parquet file for use later """
     # write the non variant dimension data out to a parquet file - state dimension table
     logging.info("writing output: {}".format(output_file))
-    # the demographic data has 4 entires per city based on ethnic breakdown - we only want the city->state relationships so select distinct cities
+    # the demographic data has 4 entires per city based on ethnic breakdown - we only want the city->state
+    # relationships so select distinct cities
     dataset.write.parquet(output_file)
 
 
