@@ -23,6 +23,10 @@ S3_DATA_BUCKET = "data2/"
 S3_ANALYTICS_BUCKET = "analytics/"
 S3_SCRIPT = "process_i94.py"
 S3_SCRIPT_BUCKET = "pyspark_steps"
+DIMENSION_STATE_KEY = "dimension_state"
+FACT_ARRIVALS_KEY = "fact_arrivals"
+DIMENSION_STATE_TABLE = "dimension_state"
+FACT_ARRIVALS_TABLE = "fact_arrivals_by_state_month"
 
 
 # define the EMR instance details
@@ -251,9 +255,9 @@ populate_dimension_table = StageToRedshiftOperator(
     dag=dag,
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
-    table="dimension_state",
+    table=DIMENSION_STATE_TABLE,
     s3_bucket=BUCKET_NAME+'/'+S3_ANALYTICS_BUCKET,
-    s3_key="dim_state",
+    s3_key=DIMENSION_STATE_KEY,
     context=True
 )
 populate_fact_table = StageToRedshiftOperator(
@@ -261,9 +265,9 @@ populate_fact_table = StageToRedshiftOperator(
     dag=dag,
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
-    table="fact_arrivals",
+    table=FACT_ARRIVALS_TABLE,
     s3_bucket=BUCKET_NAME+'/'+S3_ANALYTICS_BUCKET,
-    s3_key="fact_arrivals_by_state_month",
+    s3_key=FACT_ARRIVALS_KEY,
     context=True
 )
 
