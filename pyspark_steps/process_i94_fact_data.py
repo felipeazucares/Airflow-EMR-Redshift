@@ -1,8 +1,7 @@
 # Takes the GlobalLandTemperaturesByState.csv data file, generates months dtaa for missing months and stores it as a parquet file
 # Philip Suggars
 # February 202
-from os import listdir
-from os.path import isfile, join
+
 import logging
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
@@ -26,22 +25,6 @@ I94_PATH = HDFS_INPUT + "/18-83510-I94-Data-2016/"
 # Helper functions
 
 
-# def get_files(path):
-#     """ returns a list of fully qualified files for the gven path """
-#     # temp code to reduce total number of files we're reading
-#     file_list = []
-#     count = 0
-#     for item in listdir(path):
-#         # ! temp code to limit number of files to 1 for inital test purposes
-#         count = count + 1
-#         if count < 2:
-#             # ! end of temp
-#             if isfile(join(path, item)):
-#                 file_list.append(join(path, item))
-#     logging.info("Files detected for loading: {}".format(file_list))
-#     return file_list
-
-
 def get_files_hdfs(path):
     """ returns a list of fully qualified files for the gven path """
 
@@ -62,35 +45,7 @@ def get_files_hdfs(path):
         print("An exception occurred attempting to access the HFDS file system.")
         print("Command was:{}".format(args))
 
-    # ! REMOVE - limit files to just one for test purposes
-    file_list = file_list[0]
-
     return file_list
-
-
-# def get_files_hdfs_2(hdfs_path):
-
-#     process = Popen(f'hdfs dfs -ls -C {hdfs_path}'.format,
-#                     shell=True, stdout=PIPE, stderr=PIPE)
-#     std_out, std_err = process.communicate()
-#     list_of_file_names = [fn.split(' ')[-1].split('/')[-1]
-#                           for fn in std_out.decode().readlines()[1:]][:-1]
-#     list_of_file_names_with_full_address = [
-#         fn.split(' ')[-1] for fn in std_out.decode().readlines()[1:]][:-1]
-
-#     print(list_of_file_names)
-#     return(list_of_file_names_with_full_address)
-
-
-# def hdfs_ls(dirname):
-#     """Returns list of HDFS directory entries."""
-#     FAILED_TO_LIST_DIRECTORY_MSG = 'No such file or directory'
-
-#     proc = Popen(['hdfs', 'dfs', '-ls', '-C', dirname],
-#                  stdout=PIPE, stderr=PIPE)
-#     (out, err) = proc.communicate()
-
-#     return out.splitlines()
 
 
 def append_datasets(*datasets):
@@ -249,8 +204,7 @@ df_airport = read_and_process_airport_data(
     spark, HDFS_INPUT + '/' + INPUT_FILE, df_dimension_state_table)
 # get a list of all the datafiles in the i94 directory
 
-i94_datafile_list = get_files_hdfs(
-    "hdfs:/user/hadoop/i94/18-83510-I94-Data-2016")
+i94_datafile_list = get_files_hdfs(I94_PATH)
 # iterate over the list to create a list of data sets
 i94_total_data_set = map(
     lambda filename: read_i94_data(spark, filename), i94_datafile_list)
