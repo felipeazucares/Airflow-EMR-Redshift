@@ -1,10 +1,8 @@
 from pyspark.sql import functions as F
 from datetime import datetime, timedelta
 
-#from airflow.providers.amazon.aws.operators.s3_bucket import S3DeleteBucketOperator
 from airflow import DAG
-from airflow.hooks.S3_hook import S3Hook
-from airflow.operators import PythonOperator
+from airflow.operators import BashOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.contrib.operators.emr_create_job_flow_operator import (
     EmrCreateJobFlowOperator,
@@ -15,9 +13,7 @@ from airflow.contrib.operators.emr_terminate_job_flow_operator import (
     EmrTerminateJobFlowOperator,
 )
 
-from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.postgres_operator import PostgresOperator
-from airflow.operators.python_operator import PythonOperator
 from airflow.operators import StageToRedshiftOperator
 from helpers import SqlQueries
 
@@ -180,12 +176,13 @@ dag = DAG("a_capstone_emr",
 
 start_operator = DummyOperator(task_id="Begin_execution",  dag=dag)
 
-# Empty out analytics bucket so we don't append data on load
-# delete_bucket = S3DeleteBucketOperator(
-#     task_id='s3_bucket_dag_delete',
-#     bucket_name=BUCKET_NAME + '/' + s3_analytics_bucket,
-#     force_delete=True,
-# )
+bucket_name = BUCKET_NAME + '/' + s3_analytics_bucket
+empty_bucket = BashOperator(
+    task_id='empty_bucket',
+    bash_command='aws s3 rm s3://{} --recursive'.format(
+        bucket_name),
+    dag=dag,
+)
 
 # Create EMR instance
 create_emr_instance = EmrCreateJobFlowOperator(
@@ -270,7 +267,7 @@ populate_fact_table = StageToRedshiftOperator(
 
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 
-start_operator >> create_emr_instance >> step_adder
+start_operator >> empty_bucket >> create_emr_instance >> step_adder
 step_adder >> step_checker >> shutdown_emr_cluster
 shutdown_emr_cluster >> create_dimension_table >> create_fact_table >> populate_dimension_table
 populate_dimension_table >> populate_fact_table >> end_operator

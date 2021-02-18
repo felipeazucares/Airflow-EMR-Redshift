@@ -6,6 +6,9 @@ dbinit.py
 initdb.py
 secrets.py
 /logs*
+=~/airflow
+
+.ssh
 
 #aws
 AWSCLIV2.pkg
