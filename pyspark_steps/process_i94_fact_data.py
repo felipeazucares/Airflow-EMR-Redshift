@@ -49,7 +49,7 @@ def get_files_hdfs(path):
 
     # have to use this as we can't listdir on an hdfs volume
     args = "sudo /usr/bin/hdfs dfs -ls -C {}".format(path)
-    # spawn a subprocess and pipe its output so we can check it
+    # spawn a subprocess and pipe its output so we can split it into individual files
     try:
         process = subprocess.run(
             args, stdout=PIPE, stderr=PIPE, shell=True, universal_newlines=True)
@@ -61,6 +61,9 @@ def get_files_hdfs(path):
     except:
         print("An exception occurred attempting to access the HFDS file system.")
         print("Command was:{}".format(args))
+
+    # ! REMOVE - limit files to just one for test purposes
+    file_list = file_list[0]
 
     return file_list
 
