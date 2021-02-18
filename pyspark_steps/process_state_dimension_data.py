@@ -10,7 +10,7 @@ from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as
 import logging
 
 INPUT_FILE = "us-cities-demographics.csv"
-OUTPUT_FILE = "dim_state"
+OUTPUT_FILE = "dimension_state"
 HDFS_INPUT = "hdfs:///user/hadoop/i94"
 HDFS_OUTPUT = "hdfs:///user/hadoop/analytics"
 
@@ -19,7 +19,7 @@ def create_spark_session():
     """ create spark session and return """
     logging.info("Creating spark session")
     spark = (SparkSession.builder.
-             config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.2").
+             config("spark.jars.packages").
              enableHiveSupport().getOrCreate())
 
     return spark
@@ -72,6 +72,7 @@ def aggregate_city_demographc_data(df_demographic):
         .sort("state_key")
 
     df_dimension_state_table.show(100)
+    df_dimension_state_table.count()
     return df_dimension_state_table
 
 

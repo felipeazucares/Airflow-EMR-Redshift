@@ -13,7 +13,7 @@ INPUT_FILE = "GlobalLandTemperaturesByState.csv"
 OUTPUT_FILE = "fact_temperature_state"
 HDFS_INPUT = "hdfs:///user/hadoop/i94"
 HDFS_OUTPUT = "hdfs:///user/hadoop/analytics"
-STATE_FILE = "dim_state"
+STATE_FILE = "dimension_state"
 
 # helper functions
 

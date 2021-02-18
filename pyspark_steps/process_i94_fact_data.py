@@ -18,7 +18,7 @@ OUTPUT_FILE = "fact_arrivals_by_state_month"
 HDFS_INPUT = "hdfs:///user/hadoop/i94"
 HDFS_OUTPUT = "hdfs:///user/hadoop/analytics"
 TEMPERATURE_FILE = "fact_temperature_state"
-STATE_FILE = "dim_state"
+STATE_FILE = "dimension_state"
 I94_PATH = HDFS_INPUT + "/18-83510-I94-Data-2016/"
 # I94_FILE = "18-83510-I94-Data-2016/i94_apr16_sub.sas7bdat"
 

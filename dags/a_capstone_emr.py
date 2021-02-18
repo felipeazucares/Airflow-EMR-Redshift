@@ -1,7 +1,7 @@
 from pyspark.sql import functions as F
 from datetime import datetime, timedelta
-import logging
-import os
+
+#from airflow.providers.amazon.aws.operators.s3_bucket import S3DeleteBucketOperator
 from airflow import DAG
 from airflow.hooks.S3_hook import S3Hook
 from airflow.operators import PythonOperator
@@ -180,7 +180,14 @@ dag = DAG("a_capstone_emr",
 
 start_operator = DummyOperator(task_id="Begin_execution",  dag=dag)
 
+# Empty out analytics bucket so we don't append data on load
+# delete_bucket = S3DeleteBucketOperator(
+#     task_id='s3_bucket_dag_delete',
+#     bucket_name=BUCKET_NAME + '/' + s3_analytics_bucket,
+#     force_delete=True,
+# )
 
+# Create EMR instance
 create_emr_instance = EmrCreateJobFlowOperator(
     task_id="create_emr_cluster",
     job_flow_overrides=JOB_FLOW_OVERRIDES,
