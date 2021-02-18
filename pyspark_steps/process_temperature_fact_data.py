@@ -1,12 +1,11 @@
 # Takes the GlobalLandTemperaturesByState.csv data file,
 # generates months dtaa for missing months and stores it as a parquet file
 # Philip Suggars
-# February 202
+# February 2021
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
-from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, \
-    IntegerType as Int, LongType as Lng, TimestampType as Tms, DateType as Dt, FloatType as Ft
+from pyspark.sql.functions import year, month
+from pyspark.sql.types import StructType as R, StructField as Fld, StringType as Str, DateType as Dt, FloatType as Ft
 from functools import reduce
 from pyspark.sql import DataFrame
 import logging
@@ -74,11 +73,11 @@ def generate_missing_temperature_by_state(df_temperature_by_state):
     logging.info("Generatng missing temperature data")
     df_temp_to_average = df_temperature_by_state.filter((df_temperature_by_state["Country"] == "United States") &
                                                         ((df_temperature_by_state["Year"] == 2010) | (
-                                                                    df_temperature_by_state["Year"] == 2011) |
+                                                            df_temperature_by_state["Year"] == 2011) |
                                                          (df_temperature_by_state["Year"] == 2012)) & (
-                                                                    (df_temperature_by_state["Month"] == 10) |
-                                                                    (df_temperature_by_state["Month"] == 11) |
-                                                                    (df_temperature_by_state["Month"] == 12)))
+        (df_temperature_by_state["Month"] == 10) |
+        (df_temperature_by_state["Month"] == 11) |
+        (df_temperature_by_state["Month"] == 12)))
 
     # Average out the temperatures over the last three years
     df_temp_to_average = df_temp_to_average.groupBy(

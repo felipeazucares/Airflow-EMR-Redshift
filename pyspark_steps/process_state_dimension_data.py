@@ -5,8 +5,8 @@
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.types import StructType as R, StructField as Fld, DoubleType as Dbl, StringType as Str, \
-    IntegerType as Int, LongType as Lng, TimestampType as Tms, DateType as Dt, FloatType as Ft
+from pyspark.sql.types import StructType as R, StructField as Fld, StringType as Str, \
+    IntegerType as Int, FloatType as Ft
 import logging
 
 INPUT_FILE = "us-cities-demographics.csv"
@@ -68,8 +68,8 @@ def aggregate_city_demographc_data(df_demographic):
 
     # create dimension table for non time variant values
     df_dimension_state_table = df_demo_by_state \
-        .select(F.col("state_code") \
-        .alias("state_key"), "state_name", "average_age", "female_urban_population", "male_urban_population",
+        .select(F.col("state_code")
+                .alias("state_key"), "state_name", "average_age", "female_urban_population", "male_urban_population",
                 "total_urban_population") \
         .dropDuplicates(["state_key"]) \
         .sort("state_key")
