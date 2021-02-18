@@ -12,7 +12,7 @@ from functools import reduce
 from pyspark.sql import DataFrame
 import subprocess
 from subprocess import Popen, PIPE
-import hdfs3
+
 
 INPUT_FILE = "airport-codes_csv.csv"
 OUTPUT_FILE = "fact_arrivals_by_state_month"
@@ -21,81 +21,73 @@ HDFS_OUTPUT = "hdfs:///user/hadoop/analytics"
 TEMPERATURE_FILE = "fact_temperature_state"
 STATE_FILE = "dim_state"
 I94_PATH = HDFS_INPUT + "/18-83510-I94-Data-2016/"
-#I94_FILE = "18-83510-I94-Data-2016/i94_apr16_sub.sas7bdat"
+# I94_FILE = "18-83510-I94-Data-2016/i94_apr16_sub.sas7bdat"
 
 # Helper functions
 
 
-def get_files(path):
-    """ returns a list of fully qualified files for the gven path """
-    # temp code to reduce total number of files we're reading
-    file_list = []
-    count = 0
-    for item in listdir(path):
-        # ! temp code to limit number of files to 1 for inital test purposes
-        count = count + 1
-        if count < 2:
-            # ! end of temp
-            if isfile(join(path, item)):
-                file_list.append(join(path, item))
-    logging.info("Files detected for loading: {}".format(file_list))
-    return file_list
+# def get_files(path):
+#     """ returns a list of fully qualified files for the gven path """
+#     # temp code to reduce total number of files we're reading
+#     file_list = []
+#     count = 0
+#     for item in listdir(path):
+#         # ! temp code to limit number of files to 1 for inital test purposes
+#         count = count + 1
+#         if count < 2:
+#             # ! end of temp
+#             if isfile(join(path, item)):
+#                 file_list.append(join(path, item))
+#     logging.info("Files detected for loading: {}".format(file_list))
+#     return file_list
 
 
 def get_files_hdfs(path):
     """ returns a list of fully qualified files for the gven path """
-    # temp code to reduce total number of files we're reading
+
     file_list = []
-    # have to use this as we can listdir on an hdfs volume
-    args = "hdfs dfs -ls -C {}".format(path)
-    proc = subprocess.Popen(args, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, shell=False)
 
-    s_output, s_err = proc.communicate()
-    # stores list of files and sub-directories in 'path'
-    list_dir = s_output.splitlines()
-    #! remove everything apart from first file just for tests
-    #file_list = list_dir[0]
+    # have to use this as we can't listdir on an hdfs volume
+    args = "sudo /usr/bin/hdfs dfs -ls -C {}".format(path)
+    # spawn a subprocess and pipe its output so we can check it
+    try:
+        process = subprocess.run(
+            args, stdout=PIPE, stderr=PIPE, shell=True, universal_newlines=True)
 
-    logging.info("HDFS Files detected for loading: {}".format(file_list))
-    #list_dir = [path+"i94_apr16_sub.sas7bdat"]
-    return list_dir
+        file_list = process.stdout.splitlines()
+        print("Detected the following files:{}".format(file_list))
 
+        logging.info("HDFS Files detected for loading: {}".format(file_list))
+    except:
+        print("An exception occurred attempting to access the HFDS file system.")
+        print("Command was:{}".format(args))
 
-def get_files_hdfs_2(hdfs_path):
-
-    process = Popen(f'hdfs dfs -ls -C {hdfs_path}'.format,
-                    shell=True, stdout=PIPE, stderr=PIPE)
-    std_out, std_err = process.communicate()
-    list_of_file_names = [fn.split(' ')[-1].split('/')[-1]
-                          for fn in std_out.decode().readlines()[1:]][:-1]
-    list_of_file_names_with_full_address = [
-        fn.split(' ')[-1] for fn in std_out.decode().readlines()[1:]][:-1]
-
-    print(list_of_file_names)
-    return(list_of_file_names_with_full_address)
+    return file_list
 
 
-def hdfs_ls(dirname):
-    """Returns list of HDFS directory entries."""
-    FAILED_TO_LIST_DIRECTORY_MSG = 'No such file or directory'
+# def get_files_hdfs_2(hdfs_path):
 
-    proc = Popen(['hdfs', 'dfs', '-ls', '-C', dirname],
-                 stdout=PIPE, stderr=PIPE)
-    (out, err) = proc.communicate()
-    # if out:
-    #     logging.debug('stdout:\n' + out)
-    # if proc.returncode != 0:
-    #     errmsg = 'Failed to list HDFS directory "' + \
-    #         dirname + '", return code ' + str(proc.returncode)
-    #     logging.error(errmsg)
-    #     logging.error(err)
-    #     if not FAILED_TO_LIST_DIRECTORY_MSG in err:
-    #         raise Exception(errmsg)
-    #     return []
-    # elif err:
-    #     logging.debug('stderr:\n' + err)
-    return out.splitlines()
+#     process = Popen(f'hdfs dfs -ls -C {hdfs_path}'.format,
+#                     shell=True, stdout=PIPE, stderr=PIPE)
+#     std_out, std_err = process.communicate()
+#     list_of_file_names = [fn.split(' ')[-1].split('/')[-1]
+#                           for fn in std_out.decode().readlines()[1:]][:-1]
+#     list_of_file_names_with_full_address = [
+#         fn.split(' ')[-1] for fn in std_out.decode().readlines()[1:]][:-1]
+
+#     print(list_of_file_names)
+#     return(list_of_file_names_with_full_address)
+
+
+# def hdfs_ls(dirname):
+#     """Returns list of HDFS directory entries."""
+#     FAILED_TO_LIST_DIRECTORY_MSG = 'No such file or directory'
+
+#     proc = Popen(['hdfs', 'dfs', '-ls', '-C', dirname],
+#                  stdout=PIPE, stderr=PIPE)
+#     (out, err) = proc.communicate()
+
+#     return out.splitlines()
 
 
 def append_datasets(*datasets):
@@ -108,6 +100,7 @@ def create_spark_session():
     """ Create spark session and return """
     logging.info("Creating spark session")
     spark = (SparkSession.builder.
+             config("spark.jars.packages", "saurfang:spark-sas7bdat:2.0.0-s_2.11,org.apache.hadoop:hadoop-aws:2.7.2").
              enableHiveSupport().getOrCreate())
     return spark
 
@@ -254,7 +247,7 @@ df_airport = read_and_process_airport_data(
 # get a list of all the datafiles in the i94 directory
 
 i94_datafile_list = get_files_hdfs(
-    "hdfs:///user/hadoop/i94/18-83510-I94-Data-2016")
+    "hdfs:/user/hadoop/i94/18-83510-I94-Data-2016")
 # iterate over the list to create a list of data sets
 i94_total_data_set = map(
     lambda filename: read_i94_data(spark, filename), i94_datafile_list)
