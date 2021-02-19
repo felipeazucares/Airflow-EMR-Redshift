@@ -42,10 +42,15 @@ def read_city_demographic_data(spark, filename):
         Fld("Race", Str()),
         Fld("Count", Int())
     ])
-
-    df_demographic = spark.read.options(Header=True, Delimiter=";").csv(
-        filename, demographic_schema)
-
+    try:
+        df_demographic = spark.read.options(Header=True, Delimiter=";").csv(
+            filename, demographic_schema)
+    except EOFError as ex:
+        logging.exception("End of file exception:")
+        print(ex)
+    except FileNotFoundError as ex:
+        logging.exception("File not found exception:")
+        print(ex)
     return df_demographic
 
 
@@ -83,7 +88,11 @@ def write_parquet(dataset, output_file):
     """ output provided dataset to parquet file for use later """
     # write the non variant dimension data out to a parquet file - state dimension table
     logging.info("writing output: {}".format(output_file))
-    dataset.write.parquet(output_file)
+    try:
+        dataset.write.parquet(output_file)
+    except Exception as ex:
+        logging.exception("End of file exception:")
+        print(ex)
 
 
 def main():
@@ -94,7 +103,7 @@ def main():
 spark = create_spark_session()
 # read the city demographic datafile csv
 df_demographic_data = read_city_demographic_data(
-    spark, HDFS_INPUT + '/' + INPUT_FILE)
+    spark, HDFS_INPUT + "/" + INPUT_FILE)
 df_dimension_state_table = aggregate_city_demographc_data(df_demographic_data)
 write_parquet(df_dimension_state_table,
-              HDFS_OUTPUT + '/' + OUTPUT_FILE)
+              HDFS_OUTPUT + "/" + OUTPUT_FILE)

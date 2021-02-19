@@ -182,11 +182,10 @@ dag = DAG("a_capstone_emr",
 
 start_operator = DummyOperator(task_id="Begin_execution",  dag=dag)
 
-# Empty the bucket we write the intermediate parquet files before anything else
-bucket_name = BUCKET_NAME + '/' + S3_ANALYTICS_BUCKET
+bucket_name = BUCKET_NAME + "/" + S3_ANALYTICS_BUCKET
 empty_bucket = BashOperator(
-    task_id='empty_bucket',
-    bash_command='aws s3 rm s3://{} --recursive'.format(
+    task_id="empty_bucket",
+    bash_command="aws s3 rm s3://{} --recursive".format(
         bucket_name),
     dag=dag,
 )
@@ -257,7 +256,7 @@ populate_dimension_table = StageToRedshiftOperator(
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     table=DIMENSION_STATE_TABLE,
-    s3_bucket=BUCKET_NAME+'/'+S3_ANALYTICS_BUCKET,
+    s3_bucket=BUCKET_NAME+"/"+S3_ANALYTICS_BUCKET,
     s3_key=DIMENSION_STATE_KEY,
     context=True
 )
@@ -267,7 +266,7 @@ populate_fact_table = StageToRedshiftOperator(
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     table=FACT_ARRIVALS_TABLE,
-    s3_bucket=BUCKET_NAME+'/'+S3_ANALYTICS_BUCKET,
+    s3_bucket=BUCKET_NAME+"/"+S3_ANALYTICS_BUCKET,
     s3_key=FACT_ARRIVALS_KEY,
     context=True
 )

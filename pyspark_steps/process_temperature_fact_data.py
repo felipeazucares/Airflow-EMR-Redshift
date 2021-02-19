@@ -45,9 +45,16 @@ def read_temperature_data(spark, filename):
         Fld("Country", Str())
     ])
 
-    # Firstly get the temperature data by city
-    df_temperature_by_state = spark.read.options(Header=True).csv(
-        filename, temperature_state_schema)
+    try:
+        # Firstly get the temperature data by city
+        df_temperature_by_state = spark.read.options(Header=True).csv(
+            filename, temperature_state_schema)
+    except EOFError as ex:
+        logging.exception("End of file exception:")
+        print(ex)
+    except FileNotFoundError as ex:
+        logging.exception("File not found exception:")
+        print(ex)
     return df_temperature_by_state
 
 
@@ -115,14 +122,25 @@ def get_state_key_for_temperature_data(df_fact_temperature_by_state_name, df_dim
 def read_dimension_state_table(filename):
     """ Read the dimension state table """
     logging.info("Reading state information: {}".format(filename))
-    df_dimension_state_table = spark.read.parquet(filename)
+    try:
+        df_dimension_state_table = spark.read.parquet(filename)
+    except EOFError as ex:
+        logging.exception("End of file exception:")
+        print(ex)
+    except FileNotFoundError as ex:
+        logging.exception("File not found exception:")
+        print(ex)
     return df_dimension_state_table
 
 
 def write_parquet(dataset, output_file):
     logging.info("Writing state information: {}".format(output_file))
     """ Output provided dataset to parquet file for use later """
-    dataset.write.parquet(output_file)
+    try:
+        dataset.write.parquet(output_file)
+    except Exception as ex:
+        logging.exception("Exception writing file:")
+        print(ex)
 
 
 def main():

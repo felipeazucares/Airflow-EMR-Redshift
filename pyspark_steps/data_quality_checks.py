@@ -11,7 +11,14 @@ INPUT_FILE = "fact_arrivals_by_state_month"
 def read_parquet_file(spark, filename):
     """ Read the named parquet file and return it as a dataframe """
     logging.info("Reading parquet data:{}".format(filename))
-    df_input = spark.read.parquet(filename)
+    try:
+        df_input = spark.read.parquet(filename)
+    except EOFError as ex:
+        logging.exception("End of file exception:")
+        print(ex)
+    except FileNotFoundError as ex:
+        logging.exception("File not found exception:")
+        print(ex)
     return df_input
 
 
@@ -35,10 +42,10 @@ def main():
     spark = create_spark_session()
     # Read the fact table
     fact_table_arrivals = read_parquet_file(
-        spark, HDFS_OUTPUT + '/' + INPUT_FILE)
+        spark, HDFS_OUTPUT + "/" + INPUT_FILE)
     # Create a list of all the fields in the fact table we want to check
-    column_name = ['state_key', 'month', 'year',
-                   'average_age', 'average_temperature']
+    column_name = ["state_key", "month", "year",
+                   "average_age", "average_temperature"]
     # Now check each one has no nulls
 
     for item in column_name:

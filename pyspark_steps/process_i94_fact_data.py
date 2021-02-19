@@ -99,8 +99,16 @@ def read_and_process_airport_data(spark, filename, df_dimension_state_table):
 def read_i94_data(spark, filename):
     """ Load the i94 arrivee data from the sas data file """
     logging.info("Reading i94 data:{}".format(filename))
-    df_i94 = spark.read.format('com.github.saurfang.sas.spark').load(
-        filename, inferInt=True)
+
+    try:
+        df_i94 = spark.read.format("com.github.saurfang.sas.spark").load(
+            filename, inferInt=True)
+    except EOFError as ex:
+        logging.exception("End of file exception:")
+        print(ex)
+    except FileNotFoundError as ex:
+        logging.exception("File not found exception:")
+        print(ex)
 
     # keep just month, age, gender, airport, and visa_code
     df_i94 = df_i94.select(df_i94.i94mon.alias("month"), df_i94.i94yr.alias("year"), df_i94.i94bir.alias("age"),
@@ -117,7 +125,14 @@ def read_i94_data(spark, filename):
 def read_parquet_file(spark, filename):
     """ Read the named parquet file and return it as a dataframe """
     logging.info("Reading parquet data:{}".format(filename))
-    df_input = spark.read.parquet(filename)
+    try:
+        df_input = spark.read.parquet(filename)
+    except EOFError as ex:
+        logging.exception("End of file exception:")
+        print(ex)
+    except FileNotFoundError as ex:
+        logging.exception("File not found exception:")
+        print(ex)
     return df_input
 
 
@@ -210,7 +225,11 @@ def build_fact_table(df_fact_i94_age_gender_visa, df_fact_temperature_by_state_k
 def write_parquet(dataset, output_file):
     """ Output provided dataset to parquet file for use later """
     logging.info("writing fact table")
-    dataset.write.parquet(output_file)
+    try:
+        dataset.write.parquet(output_file)
+    except Exception as ex:
+        logging.exception("End of file exception:")
+        print(ex)
 
 
 def main():
@@ -220,10 +239,10 @@ def main():
 # create spark session
 spark = create_spark_session()
 df_dimension_state_table = read_parquet_file(
-    spark, HDFS_OUTPUT + '/' + STATE_FILE)
+    spark, HDFS_OUTPUT + "/" + STATE_FILE)
 # Read the airport codes datafile csv
 df_airport = read_and_process_airport_data(
-    spark, HDFS_INPUT + '/' + INPUT_FILE, df_dimension_state_table)
+    spark, HDFS_INPUT + "/" + INPUT_FILE, df_dimension_state_table)
 # get a list of all the datafiles in the i94 directory
 i94_datafile_list = get_files_hdfs(I94_PATH)
 # iterate over the list to create a list of data sets
@@ -237,11 +256,11 @@ df_i94 = append_datasets(*i94_total_data_set)
 df_fact_i94_age_gender_visa = join_and_agg_i94(df_i94, df_airport)
 # Now get the temperature data we've already processed by month and state
 df_fact_temperature_by_state_key = read_parquet_file(
-    spark, HDFS_OUTPUT + '/' + TEMPERATURE_FILE)
+    spark, HDFS_OUTPUT + "/" + TEMPERATURE_FILE)
 # Do the final join to add the temperature data to the arrival fact table
 df_fact_arrivals_table = build_fact_table(
     df_fact_i94_age_gender_visa, df_fact_temperature_by_state_key)
 df_fact_arrivals_table.show()
 # Store the final fact table
 write_parquet(df_fact_arrivals_table,
-              HDFS_OUTPUT + '/' + OUTPUT_FILE)
+              HDFS_OUTPUT + "/" + OUTPUT_FILE)
