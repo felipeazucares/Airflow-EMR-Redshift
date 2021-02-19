@@ -63,7 +63,7 @@ JOB_FLOW_OVERRIDES = {
                 "Market": "SPOT",
                 "InstanceRole": "CORE",
                 "InstanceType": "m5.xlarge",
-                "InstanceCount": 2,
+                "InstanceCount": 3,
             },
         ],
         # if we add a key in then we can ssh to this instance post launch - this is the name of the EC2 key in the
@@ -182,6 +182,7 @@ dag = DAG("a_capstone_emr",
 
 start_operator = DummyOperator(task_id="Begin_execution",  dag=dag)
 
+# Empty out the analytics bucket - otherwise we aggregate results from successive runs
 bucket_name = BUCKET_NAME + "/" + S3_ANALYTICS_BUCKET
 empty_bucket = BashOperator(
     task_id="empty_bucket",
@@ -191,8 +192,8 @@ empty_bucket = BashOperator(
 )
 
 # Create EMR instance
-create_emr_instance = EmrCreateJobFlowOperator(
-    task_id="create_emr_cluster",
+create_EMR_instance = EmrCreateJobFlowOperator(
+    task_id="create_EMR_cluster",
     job_flow_overrides=JOB_FLOW_OVERRIDES,
     aws_conn_id="aws_default",
     emr_conn_id="emr_default",
@@ -200,12 +201,12 @@ create_emr_instance = EmrCreateJobFlowOperator(
 )
 
 # Add your steps to the EMR cluster
-step_adder = EmrAddStepsOperator(
-    task_id="add_steps",
-    job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
+EMR_step_adder = EmrAddStepsOperator(
+    task_id="EMR_step_adder",
+    job_flow_id="{{ task_instance.xcom_pull(task_ids='create_EMR_cluster', key='return_value') }}",
     aws_conn_id="aws_default",
     steps=SPARK_STEPS,
-    params={  # these params are used to fill the parameterized values in SPARK_STEPS json
+    params={  # these params are used to provide the parameters for the steps JSON above
         "bucket_name": BUCKET_NAME,
         "s3_data": S3_DATA_BUCKET,
         "s3_script_bucket": S3_SCRIPT_BUCKET,
@@ -215,21 +216,21 @@ step_adder = EmrAddStepsOperator(
 )
 
 
-# this value will let the sensor know the last step to watch
-last_step = len(SPARK_STEPS) - 1
+# get the number of the final step
+final_EMR_step = len(SPARK_STEPS) - 1
 # wait for the steps to complete
-step_checker = EmrStepSensor(
-    task_id="watch_step",
-    job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
-    step_id="{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')["
-    + str(last_step)
+EMR_step_checker = EmrStepSensor(
+    task_id="EMR_step_checker",
+    job_flow_id="{{ task_instance.xcom_pull('create_EMR_cluster', key='return_value') }}",
+    step_id="{{ task_instance.xcom_pull(task_ids='EMR_step_adder', key='return_value')["
+    + str(final_EMR_step)
     + "] }}",
     aws_conn_id="aws_default",
     dag=dag,
 )
 
 # Shutdown EMR cluster
-shutdown_emr_cluster = EmrTerminateJobFlowOperator(
+shutdown_EMR_cluster = EmrTerminateJobFlowOperator(
     task_id="shutdown_emr_cluster",
     job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
     aws_conn_id="aws_default",
@@ -273,7 +274,7 @@ populate_fact_table = StageToRedshiftOperator(
 
 end_operator = DummyOperator(task_id="Stop_execution",  dag=dag)
 
-start_operator >> empty_bucket >> create_emr_instance >> step_adder
-step_adder >> step_checker >> shutdown_emr_cluster
-shutdown_emr_cluster >> create_dimension_table >> create_fact_table >> populate_dimension_table
+start_operator >> empty_bucket >> create_EMR_instance >> EMR_step_adder
+EMR_step_adder >> EMR_step_checker >> shutdown_EMR_cluster
+shutdown_EMR_cluster >> create_dimension_table >> create_fact_table >> populate_dimension_table
 populate_dimension_table >> populate_fact_table >> end_operator
