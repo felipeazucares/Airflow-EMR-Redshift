@@ -10,7 +10,6 @@
 #   5. Shutdown EMR cluster
 #   6. Creates dimension and fact tables in pre-existing redshift instance
 #   7. populates tables from processed data in S3
-#
 
 
 from pyspark.sql import functions as F
