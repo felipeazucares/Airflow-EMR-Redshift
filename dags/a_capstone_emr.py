@@ -1,3 +1,17 @@
+# DAG for Data Engineering Capstone project
+# Philip Suggars February 2021
+# creates EMR + Hadoop cluster
+# adds steps to:
+#   1. Copy  datasets from s3 to hadoop
+#   2. Process datasets - summarise i94 and temperature data by month and state write to fact table,
+#      create state dimension table. Write outputs to parquet
+#   3. Carry out DQ checks
+#   4. Copy processed data back to S3
+#   5. Shutdown EMR cluster
+#   6. Creates dimension and fact tables in pre-existing redshift instance
+#   7. populates tables from processed data in S3
+
+
 from pyspark.sql import functions as F
 from datetime import datetime, timedelta
 
@@ -218,7 +232,8 @@ EMR_step_adder = EmrAddStepsOperator(
 
 # get the number of the final step
 final_EMR_step = len(SPARK_STEPS) - 1
-# wait for the steps to complete
+# wait for the steps to complete - seem to have to use concatenation here as {}.format()
+# seems to fail because of double {} in source string
 EMR_step_checker = EmrStepSensor(
     task_id="EMR_step_checker",
     job_flow_id="{{ task_instance.xcom_pull('create_EMR_cluster', key='return_value') }}",
@@ -231,8 +246,8 @@ EMR_step_checker = EmrStepSensor(
 
 # Shutdown EMR cluster
 shutdown_EMR_cluster = EmrTerminateJobFlowOperator(
-    task_id="shutdown_emr_cluster",
-    job_flow_id="{{ task_instance.xcom_pull(task_ids='create_emr_cluster', key='return_value') }}",
+    task_id="shutdown_EMR_cluster",
+    job_flow_id="{{ task_instance.xcom_pull(task_ids='create_EMR_cluster', key='return_value') }}",
     aws_conn_id="aws_default",
     dag=dag,
 )
