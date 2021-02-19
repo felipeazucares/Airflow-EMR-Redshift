@@ -160,10 +160,10 @@ def join_and_agg_i94(df_i94, df_airport):
     df_i94_fact_visa = df_i94_cleansed.groupBy("state_key", "month", "year").pivot("visa_key").count() \
         .sort("state_key", "year", "month")
 
-    # Agg to get the average age per month and state, rename column and round to 2.dp
+    # Agg to get the average age of arrivals per month and state, rename column and round to 2.dp
     df_i94_fact_age = df_i94_cleansed.groupBy("state_key", "month", "year").avg("age") \
         .select(df_i94_cleansed.state_key, df_i94_cleansed.month, df_i94_cleansed.year,
-                F.round(F.col("avg(age)"), 1).alias("average_age")) \
+                F.round(F.col("avg(age)"), 1).alias("average_age_arrivals")) \
         .sort("state_key", "year", "month")
 
     # Join the age dataframe with gender counts
@@ -192,7 +192,7 @@ def join_and_agg_i94(df_i94, df_airport):
     df_fact_i94_age_gender_visa = df_i94_fact_age_gender_visa.select(df_i94_fact_age_gender_visa.state_key,
                                                                      df_i94_fact_age_gender_visa.month,
                                                                      df_i94_fact_age_gender_visa.year,
-                                                                     df_i94_fact_age_gender_visa.average_age,
+                                                                     df_i94_fact_age_gender_visa.average_age_arrivals,
                                                                      df_i94_fact_age_gender_visa.F,
                                                                      df_i94_fact_age_gender_visa.M,
                                                                      df_i94_fact_age_gender_visa.U,

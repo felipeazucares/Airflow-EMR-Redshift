@@ -14,7 +14,7 @@ class SqlQueries:
         state_key varchar(2),
         month integer,
         year integer,
-        average_age float8,
+        average_age_arrivals float8,
         F bigint,
         M bigint,
         U bigint,
