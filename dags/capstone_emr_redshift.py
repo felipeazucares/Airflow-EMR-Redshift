@@ -187,7 +187,7 @@ default_args = {
     "retry_delay": timedelta(minutes=3),
 }
 
-dag = DAG("a_capstone_emr",
+dag = DAG("capstone_emr_redshift",
           default_args=default_args,
           description="Build fact and dimension table for capstone project on i94 arrivals data",
           schedule_interval="@monthly",
