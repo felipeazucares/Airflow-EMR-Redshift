@@ -184,7 +184,8 @@ year | integer| year of arrival |
 average_age_arrivals | float8| average age of arrivals for state_key, month and year|
 F | bigint| Count of arrivals who identify as female for state_key, month and year |
 M | bigint| Count of arrivals who identify as male for state_key, month and year |
-U | bigint| Count of arrivals who identify as non-binary for state_key, month and year X | bigint| Count of arrivals who identify as trans for state_key, month and year |
+U | bigint| Count of arrivals who identify as non-binary for state_key, month and year
+X | bigint| Count of arrivals who identify as trans for state_key, month and year |
 business | bigint| Count of arrivals travelling for business for state_key, month and year |
 pleasure | bigint| Count of arrivals travelling for pleasure for state_key, month and year |
 student | bigint| Count of arrivals travelling for study for state_key, month and year |
