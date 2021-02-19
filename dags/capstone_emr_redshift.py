@@ -33,7 +33,7 @@ from helpers import SqlQueries
 
 # configuration information
 BUCKET_NAME = "capstone-suggars"
-S3_DATA_BUCKET = "data2/"
+S3_DATA_BUCKET = "data/"
 S3_ANALYTICS_BUCKET = "analytics/"
 S3_SCRIPT = "process_i94.py"
 S3_SCRIPT_BUCKET = "pyspark_steps"
