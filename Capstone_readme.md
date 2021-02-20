@@ -58,32 +58,32 @@ Describe and Gather Data
 --
 As discussed in the previous section, the datasets utilised in this project are:
 - i94 arrivals data - e.g. i94_apr16_sub.sas7bdat. There are 12 of these files in all, each in sas7bdat format and containing a month's worth of arrivals data at the level of anonymised individual. Each record contains the self declared, gender, age and visa type information for the traveller as well as port of arrival:
-	*I94YR* - 4 digit year
-	*I94MON* - Numeric month
-	I94CIT & I94RES - Citizen and residency
-	*I94PORT* - This format shows all the valid and invalid codes for processing
-	ARRDATE is the Arrival Date in the USA. It is a SAS date numeric field that a permanent format has not been applied. Please apply whichever date format works for you.
-	I94MODE - There are missing values as well as not reported (9)
-	I94ADDR - There is lots of invalid codes in this variable and the list below shows what we have found to be valid, everything else goes into 'other'
-	DEPDATE is the Departure Date from the USA. It is a SAS date numeric field that a permament format has not been applied. Please apply whichever date format works for you.
-	*I94BIR* - Age of Respondent in Years
-	*I94VISA* - Visa codes collapsed into three categories:
-	COUNT - Used for summary statistics
-	DTADFILE - Character Date Field - Date added to I-94 Files - CIC does not use
-	VISAPOST - Department of State where where Visa was issued - CIC does not use
-	OCCUP - Occupation that will be performed in U.S. - CIC does not use
-	ENTDEPA - Arrival Flag - admitted or paroled into the U.S. - CIC does not use
-	ENTDEPD - Departure Flag - Departed, lost I-94 or is deceased - CIC does not use
-	ENTDEPU - Update Flag - Either apprehended, overstayed, adjusted to perm residence - CIC does not use
-	MATFLAG - Match flag - Match of arrival and departure records
-	BIRYEAR - 4 digit year of birth
-	DTADDTO - Character Date Field - Date to which admitted to U.S. (allowed to stay until) - CIC does not use
-	*GENDER* - Non-immigrant sex
-	INSNUM - INS number
-	AIRLINE - Airline used to arrive in U.S.
-	ADMNUM - Admission Number
-	FLTNO - Flight number of Airline used to arrive in U.S.
-	VISATYPE - Class of admission legally admitting the non-immigrant to temporarily stay in U.S.
+	*I94YR* - 4 digit year <br>
+	*I94MON* - Numeric month<br>
+	I94CIT & I94RES - Citizen and residency<br>
+	*I94PORT* - This format shows all the valid and invalid codes for processing<br>
+	ARRDATE is the Arrival Date in the USA. It is a SAS date numeric field that a permanent format has not been applied. Please apply whichever date format works for you.<br>
+	I94MODE - There are missing values as well as not reported (9)<br>
+	I94ADDR - There is lots of invalid codes in this variable and the list below shows what we have found to be valid, everything else goes into 'other'<br>
+	DEPDATE is the Departure Date from the USA. It is a SAS date numeric field that a permament format has not been applied. Please apply whichever date format works for you.<br>
+	*I94BIR* - Age of Respondent in Years<br>
+	*I94VISA* - Visa codes collapsed into three categories:<br>
+	COUNT - Used for summary statistics<br>
+	DTADFILE - Character Date Field - Date added to I-94 Files - CIC does not use<br>
+	VISAPOST - Department of State where where Visa was issued - CIC does not use<br>
+	OCCUP - Occupation that will be performed in U.S. - CIC does not use<br>
+	ENTDEPA - Arrival Flag - admitted or paroled into the U.S. - CIC does not use<br>
+	ENTDEPD - Departure Flag - Departed, lost I-94 or is deceased - CIC does not use<br>
+	ENTDEPU - Update Flag - Either apprehended, overstayed, adjusted to perm residence - CIC does not use<br>
+	MATFLAG - Match flag - Match of arrival and departure records<br>
+	BIRYEAR - 4 digit year of birth<br>
+	DTADDTO - Character Date Field - Date to which admitted to U.S. (allowed to stay until) - CIC does not use<br>
+	*GENDER* - Non-immigrant sex<br>
+	INSNUM - INS number<br>
+	AIRLINE - Airline used to arrive in U.S.<br>
+	ADMNUM - Admission Number<br>
+	FLTNO - Flight number of Airline used to arrive in U.S.<br>
+	VISATYPE - Class of admission legally admitting the non-immigrant to temporarily stay in U.S.<br>
 	
 - World Temperature Data by State - GlobalLandTemperaturesByState.csv. This dataset comes from Kaggle and lists average monthly temperatures at the state level, up to and including 2013: 
 	*dt* - datetime for temperature reading 
