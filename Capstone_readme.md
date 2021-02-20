@@ -9,11 +9,11 @@ This Git Repo is my submission to the data engineering Nano degree capstone proj
 
 Purpose
 --
-The purpose of the project is to create a star schema in AWS Redshift which allows users to correlate the visa types (business, pleasure, study) and gender mix of arrivals to each US state by month with the temperature conditions and other demographic details for that state.  One possible purpose of this would be to gain insight into how historical temperature conditions impact the declared purposes of incomers.
+The purpose of the project is to create a star schema in AWS Redshift which allows users to correlate the visa types (business, pleasure, study) and/or gender mix of arrivals to each US state by month with the temperature conditions and other demographic details for that state. One possible purpose of this would be to gain insight into how historical temperature conditions impact the declared purposes of incomers.
 
-This application comprises an Apache Airflow dag which dynamically spins up an AWS EMR + Hadoop cluster, it then uses the Spark steps API to cleanse, combine and aggregate I94 arrivals data, a set of demographic data by city, airport codes and a Kaggle dataset of state temperatures by month to generate and populate a simple star schema  in Redshift. 
+This application comprises an Apache Airflow dag which dynamically spins up an AWS EMR + Hadoop cluster, it then uses the Spark steps API to cleanse, combine and aggregate I94 arrivals data, a set of demographic data by city, airport codes and a Kaggle dataset of state temperatures by month to generate and populate a simple star schema in Redshift. 
 
-The star schema consists of a fact table containing anonymised arrivals visa type data and in addition to gender counts aggregated by month and state. It combines this with the most recent historical temperature data for that state.
+The star schema consists of a fact table containing anonymised arrivals visa type data, in addition to gender counts and average age information aggregated by month and state. It combines this with the most recent historical temperature data for that state.
 
 A single dimension table, keyed by state code contains additional demographic data by state. Since this data is non time-variant and effectively a property of the state it is not stored in the fact table. 
 
@@ -28,8 +28,8 @@ Setup
 		git remote add -t \* -f origin https://github.com/felipeazucares/udacity_6.git
 		git checkout capstone
 	
-	This should download all the of the source files into your airflow directory (do not forget the checkout step as this project is not on the master branch).
-5) Upload the ~/airflow/additional_data/GlobalLandTemperaturesByState.csv file to the your s3://<your bucket/data folder.
+	This should download all  of the source files into your airflow directory (do not forget the checkout step as this project is not on the master branch).
+5) Upload the ~/airflow/additional_data/GlobalLandTemperaturesByState.csv file to the your s3://<your bucket>/data folder.
 	The data folder should now look like this:
 ![enter image description here](https://i.ibb.co/VpQ0cgm/Screenshot-2021-02-19-at-21-32-45.png)
 7) Open the ~/airflow/dags/capstone_emr_redshift.py dag in an editor and change this line:
@@ -37,27 +37,27 @@ Setup
 		BUCKET_NAME  =  "capstone-suggars"
 		
 	To reflect the name that you have called your S3 bucket.
-8) now upload the contents of the ~/airflow/pyspark_steps directory to the pyspark_steps folder under your s3 bucket.
+8) Now upload the contents of the ~/airflow/pyspark_steps directory to the pyspark_steps folder under your s3 bucket.
 	
 	The pyspark_steps s3 folder should now contain:
 ![enter image description here](https://i.ibb.co/pnj4FWy/Screenshot-2021-02-19-at-21-34-46.png)
-9) Spin up a redshift cluster. You should name your schema dev and make a note of:
+9) Spin up a Redshift cluster. You should name your schema dev and make a note of:
 	-  User
 	- Password
 	- Endpoint  
 	- Port
 
-10) From your terminal session start the airflow webserver and scheduler, then open a browser and got to http://localhost:[your port]/admin/ to view the Airflow UI.
+10) From your terminal session start the airflow webserver and scheduler, then open a browser and go to http://localhost:<your port>/admin/ to view the Airflow UI.
 11) Once the Airflow cache has refreshed you should see the capstone_emr_redshift dag listed in the dag bag 
-12) In the Airflow UI go to Admin->Connections and add a new Postgres connection, name it redshift and enter the details for the cluster you created in step 3 and click save.
-13) From the main Airflow UI you should now be able to execute the capstone_emr_redshift dag by toggling it to 'On' and clicking on the trigger dag 'play' switch on the far right of the screen and then clicking 'Trigger' on the confirmation screen.
+12) In the Airflow UI go to Admin->Connections and add a new Postgres connection, name it 'redshift' and enter the details for the cluster you created in step 3 and click save.
+13) From the main Airflow UI you should now be able to execute the capstone_emr_redshift dag by toggling it to 'On' and clicking on the trigger dag 'play' switch on the far right of the screen. Click the 'Trigger' button on the confirmation page.
 
 The process should take around 40-60 minutes to run. Once complete you should be able to run the example queries included at the bottom of this write up on the resulting star schema.
 
 Describe and Gather Data
 --
 As discussed in the previous section, the datasets utilised in this project are:
-- i94 arrivals data - e.g. i94_apr16_sub.sas7bdat. There are 12 of these files in all in sas7bdat format each containing a month's worth of arrivals data at the level of anonymised individual. Each record contains the self declared, gender, age and visa type information for the traveller as well as port of arrival:
+- i94 arrivals data - e.g. i94_apr16_sub.sas7bdat. There are 12 of these files in all, each in sas7bdat format and containing a month's worth of arrivals data at the level of anonymised individual. Each record contains the self declared, gender, age and visa type information for the traveller as well as port of arrival:
 	*I94YR* - 4 digit year
 	*I94MON* - Numeric month
 	I94CIT & I94RES - Citizen and residency
@@ -122,23 +122,23 @@ As discussed in the previous section, the datasets utilised in this project are:
 
 Note:  fields in italics are those used in the construction of the fact and dimension tables.
 
-The temperature data I opted  to use in this process is by state by month rather than by city by month. The reason for this is that summarising the city temperature data to state level seemed to be unlikely to give an accurate picture of average state temperatures given the unknown concentration of cities per state and the amount of rural data that would be left out of such an averaging process.
+The temperature data I opted  to use in this process is by state by month rather than by city by month. The reason for this is that summarising the city temperature data to state level seemed unlikley to give an accurate picture of average state temperatures given the unknown concentration of cities per state and the amount of rural data that would be left out of such an averaging process.
 
-Since the state level dataset is readily available on Kaggle summarising the data to state seemed an artificial constraint that would lead to inaccurate results.
+Since the state level dataset is readily available on Kaggle summarising the data to state seemed an artificial constraint that would lead to very inaccurate results.
 
 Exploring, Assessing and Cleaning the Data
 --
-In assessing these datasets I have focused on completeness rather than other aspects of data quality as this is likely to have the most positive impact on the datasets produced.
+In assessing these datasets I have focused on completeness rather than other aspects of data quality as this is likely to have the most benefical impact on the results produced.
 
 **Temperature Data**
 The main issues with the temperature data were:
-1) The latest data were for the year 2013, whereas the I94 arrivals data were for the year 2016. For the purposes of this exploration it seemed reasonable to filter the set to just 2013 and to combine this dataset with the 2016 arrivals data, since climate change is a relatively incremental phenomenon and there were unlikely to be any marked differences year on year. 
+1) The latest data were for the year 2013, whereas the I94 arrivals data were for the year 2016. For the purposes of this exploration it seemed reasonable to filter this set to just 2013 and to combine this with the 2016 arrivals data, since climate change is a relatively incremental phenomenon and there were unlikely to be any marked differences year on year. 
 2) The data for the months Sept-Dec were missing for the latest year, 2013. I therefore opted to extract these months for the previous three years (2010-2012) and average them out, then append these generated months back into the main dataset to provide complete coverage for all of the months for 2013.
 
 **U.S. City Demographic Data**
 The main issues with this dataset were:
-1) The dataset provided four records for each city split by four race classes. Apart from the ethnicity specific fields the data in each of these records was the same. Therefore I opted to drop any duplicates resulting in one record per city
-2) The data was at city level, but my intention was to generate a schema summarised by month and state, therefore I needed to summarise to state level before using it to construct a dimension table. I did this by aggregating across the measures that I was interested in to provide population counts and demographic splits across the state. However, I am very aware that this data only pertains to the urban population in the cities noted and does therefore not give a significantly understates the total populations of these measures across the state, a situation which I've addressed partly in the naming of the columns.
+1) The dataset provided four records for each city split by four race classes. Apart from the ethnicity specific fields the data in each of these records was the same. Therefore, I opted to drop any duplicates resulting in one record per city
+2) The data was at city level, but my intention was to generate a schema summarised by month and state, therefore I needed to summarise to state level before using it to construct a dimension table. I did this by aggregating across the measures that I was interested in, to provide population counts and demographic splits across the state. However, I am very aware that this data only pertains to the urban population in the cities noted and  therefore significantly understates the total populations of these measures, a situation which I've addressed by suffixing these columns with 'urban population'.
 
 **I94 Arrivals Data**
 There were two major issues and assumptions that I had to make with this dataset:
@@ -196,13 +196,13 @@ Toolset used
 --
 Since the application needed to process around 7Gb of data, I felt that a master/slave EMR cluster on AWS with Hadoop would provide the necessary compute and throughput capacity to process the datasets.
 
-The resultant schema itself would best be stored in a columnar database such as Redshift. Apache Cassandra would not be flexible enough for the queries that I envisaged the user population requiring, at least not without having to generate multiple tables to support all possible query combinations which seemed like an overhead with this use case.
+The resultant schema itself would best be stored in a columnar database such as Redshift. Apache Cassandra would not be flexible enough for the queries that I envisaged being required, at least, not without having to generate multiple tables to support all possible query combinations, which seemed like an overhead for this use case.
 
 To manage the transformation and processing orchestration I used a locally installed instance of Apache-Airflow as its tight integration with both EMR and Redshift would make the process both reliable and relatively lightweight. Similarly, I was able to make use of the EMR's steps API to ensure the resulting dag was not overly complex or reliant on CLI calls.
 
 Update cadence
 --
-Given that the data is summarised by month, it would probably make little sense to update the dataset more than monthly, although it should be stressed that the pipeline itself would be perfectly able to cope with inter-month updates. Users would just need to be aware that the current month figures were effectively a work-in-progress.
+Given that the data is summarised by month, it would probably make little sense to update the dataset more than a monthly cadence, although it should be stressed that the pipeline itself is perfectly able to cope with inter-month updates. Users would just need to be aware that the current month figures were effectively a work-in-progress.
 
 Other scenarios
 --
@@ -221,7 +221,7 @@ That said, it's entirely possible that with enough network and compute resources
 
 Example queries
 --
-Let us know examine how this star schema would derive insight from the underlying datasets involved.  E.g. *If we want to see how the arrivals travel motivation is affected by average state temperature*
+The example queries below have been run in the resulting Redshift schema to illustrate how it is possible to derive insight from the underlying datasets involved.  E.g. *If we want to see how the arrivals travel motivation is affected by average state temperature*
 
 	select month,business,pleasure,student,average_temperature from fact_arrivals 
 	join dimension_state on fact_arrivals.state_key = dimension_state.state_key
