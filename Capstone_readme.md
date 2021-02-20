@@ -86,39 +86,39 @@ As discussed in the previous section, the datasets utilised in this project are:
 	VISATYPE - Class of admission legally admitting the non-immigrant to temporarily stay in U.S.<br>
 	
 - World Temperature Data by State - GlobalLandTemperaturesByState.csv. This dataset comes from Kaggle and lists average monthly temperatures at the state level, up to and including 2013: 
-	*dt* - datetime for temperature reading 
-	*AverageTemperature* - average temperature for region
-	AverageTemperatureUncertainty
-	*State* - Region of reading
-	*Country* - Country for region
+	*dt* - datetime for temperature reading <br>
+	*AverageTemperature* - average temperature for region<br>
+	AverageTemperatureUncertainty<br>
+	*State* - Region of reading<br>
+	*Country* - Country for region<br>
 	
 -  U.S. City Demographic Data us-cities-demographics.csv  This dataset is sourced from OpenSoft. It contains demographic information by US city. The data is broken down by ethnic group, so each city has four separate records:
-	*City*
-	*State*
-	*Median Age*
-	*Male Population*
-	*Female Population*
-	*Total Population*
-	Number of Veterans
-	Foreign-born
-	Average Household Size
-	*State Code*
-	Race
-	Count
+	*City*<br>
+	*State*<br>
+	*Median Age*<br>
+	*Male Population*<br>
+	*Female Population*<br>
+	*Total Population*<br>
+	Number of Veterans<br>
+	Foreign-born<br>
+	Average Household Size<br>
+	*State Code*<br>
+	Race<br>
+	Count<br>
 	
 -   Airport Code Table - airport-code_csv.csv. This is a simple table of airport codes and corresponding cities from around the world sourced from datahub.io
-	ident - airport identifier
-	type - type of airport
-	name
-	elevation_ft
-	continent
-	iso_country
-	*iso_region iso region code - for US this is a proxy for state*
-	municipality
-	gps_code
-	iata_code 
-	*local_code*
-	coordinates	
+	ident - airport identifier<br>
+	type - type of airport<br>
+	name<br>
+	elevation_ft<br>
+	continent<br>
+	iso_country<br>
+	*iso_region iso region code - for US this is a proxy for state*<br>
+	municipality<br>
+	gps_code<br>
+	iata_code <br>
+	*local_code*<br>
+	coordinates	<br>
 
 Note:  fields in italics are those used in the construction of the fact and dimension tables.
 
