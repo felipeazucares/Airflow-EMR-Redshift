@@ -22,9 +22,8 @@ Setup
 4) Open a terminal session & cd to your airflow home directory (usually ~/airflow) and type:
 
 		git remote add -t \* -f origin https://github.com/felipeazucares/udacity_6.git
-		git checkout capstone
 	
-	This should download all  of the source files into your airflow directory (do not forget the checkout step as this project is not on the master branch).
+	This should download all  of the source files into your airflow directory.
 5) Upload the ~/airflow/additional_data/GlobalLandTemperaturesByState.csv file to the your s3://<your bucket>/data folder.
 	The data folder should now look like this:
 ![enter image description here](https://i.ibb.co/VpQ0cgm/Screenshot-2021-02-19-at-21-32-45.png)
