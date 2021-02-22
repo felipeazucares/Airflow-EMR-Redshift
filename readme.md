@@ -5,10 +5,6 @@ Readme.md
 Introduction
 ----
 
-This Git Repo is my submission to the data engineering Nano degree capstone project. It should contain all the files and instructions necessary to set up and install the project on another machine.
-
-Purpose
---
 The purpose of the project is to create a star schema in AWS Redshift which allows users to correlate the visa types (business, pleasure, study) and/or gender mix of arrivals to each US state by month with the temperature conditions and other demographic details for that state. One possible purpose of this would be to gain insight into how historical temperature conditions impact the declared purposes of incomers.
 
 This application comprises an Apache Airflow dag which dynamically spins up an AWS EMR + Hadoop cluster, it then uses the Spark steps API to cleanse, combine and aggregate I94 arrivals data, a set of demographic data by city, airport codes and a Kaggle dataset of state temperatures by month to generate and populate a simple star schema in Redshift. 
