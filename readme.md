@@ -38,7 +38,7 @@ Setup
 	The pyspark_steps s3 folder should now contain:
 ![enter image description here](https://i.ibb.co/pnj4FWy/Screenshot-2021-02-19-at-21-34-46.png)
 9) Spin up a Redshift cluster. You should name your schema dev and make a note of:
-	-  User
+	- User
 	- Password
 	- Endpoint  
 	- Port
