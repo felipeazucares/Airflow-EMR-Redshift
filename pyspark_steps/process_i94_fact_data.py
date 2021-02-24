@@ -12,6 +12,9 @@ from pyspark.sql import DataFrame
 import subprocess
 from subprocess import PIPE
 
+from os import listdir
+from os.path import isfile, join
+
 INPUT_FILE = "airport-codes_csv.csv"
 OUTPUT_FILE = "fact_arrivals_by_state_month"
 HDFS_INPUT = "hdfs:///user/hadoop/i94"
@@ -29,11 +32,11 @@ def get_files_hdfs(path):
     file_list = []
 
     # have to use this as we can't listdir on an hdfs volume
-    args = "sudo /usr/bin/hdfs dfs -ls -C {}".format(path)
+    args = "/usr/bin/hdfs dfs -ls -C {}".format(path)
     # spawn a subprocess and pipe its output so we can split it into individual files
     try:
         process = subprocess.run(
-            args, stdout=PIPE, stderr=PIPE, shell=True, universal_newlines=True)
+            args, stdout=PIPE, stderr=PIPE, universal_newlines=True)
 
         file_list = process.stdout.splitlines()
         print("Detected the following files:{}".format(file_list))
@@ -43,6 +46,16 @@ def get_files_hdfs(path):
         print("An exception occurred attempting to access the HFDS file system.")
         print("Command was:{}".format(args))
 
+    return file_list
+
+
+def get_files(path):
+    """ returns a list of fully qualified files for the gven path """
+    file_list = []
+    for item in listdir(path):
+        if isfile(join(path, item)):
+            file_list.append(join(path, item))
+    logging.info("Files detected for loading: {}".format(file_list))
     return file_list
 
 
