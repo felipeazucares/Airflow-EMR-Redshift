@@ -40,10 +40,9 @@ def get_files_hdfs(path):
 
         file_list = process.stdout.splitlines()
         print("Detected the following files:{}".format(file_list))
-
-        logging.info("HDFS Files detected for loading: {}".format(file_list))
     except Exception as ex:
         print("An exception occurred attempting to access the HFDS file system.")
+        print(ex)
         print("Command was:{}".format(args))
 
     return file_list
