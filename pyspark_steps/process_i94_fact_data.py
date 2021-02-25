@@ -32,7 +32,7 @@ def get_files_hdfs(path):
     file_list = []
 
     # have to use this as we can't listdir on an hdfs volume
-    args = "/usr/bin/hdfs dfs -ls -C {}".format(path)
+    args = "sudo /usr/bin/hdfs dfs -ls -C {}".format(path)
     # spawn a subprocess and pipe its output so we can split it into individual files
     try:
         process = subprocess.run(
